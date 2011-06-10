@@ -160,6 +160,13 @@ while (<>) {
 }
 
 open( $fdata, ">", "fdata.js" ) or die $!;  # data for flot
+print $fdata "/**\n";
+print $fdata " * data provided by entsoe.net -- the transparency platform of ENTSO-E\n";
+print $fdata " * please take note of their disclaimer: https://www.etsovista.org/res/disclaimer.pdf\n";
+print $fdata "\n";
+print $fdata " * data aggregation by Thiemo Nagel\n";
+print $fdata " **/\n";
+print $fdata "\n";
 print $fdata "var datasets = {\n";
 
 $color = 1;
