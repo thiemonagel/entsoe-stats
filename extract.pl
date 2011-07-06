@@ -1,4 +1,6 @@
 #!/usr/bin/perl -w
+#
+# requires Debian package libxml-simple-perl
 
 $infile = shift;
 $outfile = shift;
