@@ -33,7 +33,7 @@ foreach $d ( @{ $day } ) {
 #    print "$out --> $in\n";
     foreach $hour ( @{ $intervals } ) {
         $h = $hour->{Pos}->{v};
-        if ( $hour->{Qty}->{v} eq "" ) {
+        if ( !defined $hour->{Qty}->{v} || $hour->{Qty}->{v} eq "" ) {
             $missing_hours++;
             $v = 0.;
         } else {
