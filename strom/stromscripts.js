@@ -92,7 +92,6 @@ function InitPlot( data ) {
         e.preventDefault()
         last_datatype = "none"
         plotAccordingToChoices()
-        console.log("click!")
     })
 
 
@@ -107,6 +106,8 @@ function InitPlot( data ) {
 
 
 function plotAccordingToChoices() {
+//    console.log("plotAccordingToChoices() called.")
+
     var data = []
     
     var datatype = last_datatype
