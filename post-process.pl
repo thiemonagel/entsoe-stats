@@ -22,7 +22,7 @@ while (<>) {
         @parts = split /,/;
         $val   = $parts[23];
         $DELU{$year}{$month} = $val if $val ne "";
-#        print "DE->LU $year-$month $val (", ( defined $val ? "defined" : "undef" ), ")\n";
+        print "DE->LU $year-$month $val (", ( defined $val ? "defined" : "undef/empty" ), ")\n";
     }
     if ( /^"LU",(\d+),(\d+)/ ) {
         $month = $1 + 0;
@@ -30,7 +30,7 @@ while (<>) {
         @parts = split /,/;
         $val   = $parts[9];
         $LUDE{$year}{$month} = $val if $val ne "";
-#        print "LU->DE $year-$month $val (", ( defined $val ? "defined" : "undef" ), ")\n";
+        print "LU->DE $year-$month $val (", ( defined $val ? "defined" : "undef/empty" ), ")\n";
     }
 
     /(\d{4})-(\d{2})-(\d{2}): +(-?\d*\.\d*)/ or next;
@@ -154,8 +154,8 @@ while (<>) {
     $unixtime -= 1293836400;
     print "$year-$month-$day $val $avg7 $avg30 $cum lucorr: $lucorr\n";
     $flot{$year}{"1"}  {$normtime} = $val;
-    $flot{$year}{"7"}  {$normtime} = $avg7;
-    $flot{$year}{"30"} {$normtime} = $avg30;
+    $flot{$year}{"7"}  {$normtime} = $avg7   if ( $n7 > 5 );   # prevent inaccuracy: require >75% data
+    $flot{$year}{"30"} {$normtime} = $avg30  if ( $n30 > 22 ); # prevent inaccuracy: require >75% data
     $flot{$year}{"cum"}{$normtime} = $cum;
 }
 
@@ -193,7 +193,7 @@ foreach $year ( sort keys %DELU ) {
     $ysum = 0;
     foreach $month ( sort { $a <=> $b } keys %{ $DELU{$year} } ) {
         $val = $DELU{$year}{$month}-$LUDE{$year}{$month};
-        print "$year-$month: $val (",
+        print "export to LU: $year-$month: $val (",
         $DELU{$year}{$month}, ( defined $DELU_ex{$year}{$month} ? "e" : "" ),
         " - ", $LUDE{$year}{$month}, ( defined $LUDE_ex{$year}{$month} ? "e" : "" ),
         ")\n";

@@ -1,8 +1,15 @@
 TODO
 ====
 
+* normalise to monthly values from entsoe.eu, extrapolate
+  from previous years where data is missing
 * increase vertical size of plot
 * fix year selection checkboxes
-* fix moving averages at the begin of the year
 * show hourly plots
 * create separate page for stats
+
+
+DONE
+====
+
+* fix moving averages at the begin of 2009
