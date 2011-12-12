@@ -8,15 +8,15 @@ $cum = 0;
 $lasttime = 0;
 $lastyear = 0;
 while (<>) {
-    if ( /^"Country_Exp"/ ) {
-        if ( /^"Country_Exp","month","year","AT","BA","BE","BG","CH","CZ","DE","DK","DK","EE","ES","FI","FR","GB","GR","HR","HU","IE","IT","LT","LU","LV","ME","MK","NI","NL","NO","PL","PT","RO","RS","SE","SI","SK","UA","AL","BY","MA","MD","RU","TR","UA","DK"/ ) {
+    if ( /^Country_Exp/ ) {
+        if ( /^Country_Exp,month,year,AT,BA,BE,BG,CH,CZ,DE,DK,DK,EE,ES,FI,FR,GB,GR,HR,HU,IE,IT,LT,LU,LV,ME,MK,NI,NL,NO,PL,PT,RO,RS,SE,SI,SK,UA,AL,BY,MA,MD,RU,TR,UA,DK/ ) {
             print "CSV format ok!\n";
         } else {
             die "Bad CSV format!";
         }
         next;
     }
-    if ( /^"DE",(\d+),(\d+)/ ) {
+    if ( /^DE,(\d+),(\d+)/ ) {
         $month = $1 + 0;
         $year  = $2 + 0;
         @parts = split /,/;
@@ -24,7 +24,7 @@ while (<>) {
         $DELU{$year}{$month} = $val if $val ne "";
         print "DE->LU $year-$month $val (", ( defined $val ? "defined" : "undef/empty" ), ")\n";
     }
-    if ( /^"LU",(\d+),(\d+)/ ) {
+    if ( /^LU,(\d+),(\d+)/ ) {
         $month = $1 + 0;
         $year  = $2 + 0;
         @parts = split /,/;
@@ -154,8 +154,8 @@ while (<>) {
     $unixtime -= 1293836400;
     print "$year-$month-$day $val $avg7 $avg30 $cum lucorr: $lucorr\n";
     $flot{$year}{"1"}  {$normtime} = $val;
-    $flot{$year}{"7"}  {$normtime} = $avg7   if ( $n7 > 5 );   # prevent inaccuracy: require >75% data
-    $flot{$year}{"30"} {$normtime} = $avg30  if ( $n30 > 22 ); # prevent inaccuracy: require >75% data
+    $flot{$year}{"7"}  {$normtime} = $avg7   if ( $n7 > 6 );   # prevent inaccuracy: require all data
+    $flot{$year}{"30"} {$normtime} = $avg30  if ( $n30 > 29 ); # prevent inaccuracy: require all data
     $flot{$year}{"cum"}{$normtime} = $cum;
 }
 
