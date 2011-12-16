@@ -24,7 +24,7 @@ fdata.js: Statistics_2007.csv 2009final.out 2010final.out 2011final.out 2011.out
 	cp -a $@ ../data/$*-$(date)final.out
 
 Statistics.csv: Statistics.xls
-	localc -nosplash -convert-to csv Statistics.xls
+	localc --headless -env:UserInstallation=file://$(shell mktemp -d -t entso-loffice.XXXXXX) -convert-to csv Statistics.xls
 
 Statistics_2007.csv: Statistics.csv
 	@touch $@.bak
