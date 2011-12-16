@@ -1,41 +1,51 @@
 #!/usr/bin/perl -w
 #
 # requires Debian package libxml-simple-perl
+#
+# semantics:
+# "in":  from
+# "out": to
 
-$infile = shift;
-$outfile = shift;
+#use strict;
 
-open( $fh, ">", $outfile ) or die $!;
+my $infile = shift;
+my $outfile = shift;
+
+open( my $fh, ">", $outfile ) or die $!;
 
 # use module
 use XML::Simple;
 use Data::Dumper;
 
 # create object
-$xml = new XML::Simple;
+my $xml = new XML::Simple;
 
 # read XML file
-$data = $xml->XMLin( $infile );
+my $data = $xml->XMLin( $infile );
 
 #print Dumper($data);
 
-$total_hours   = 0;
-$missing_hours = 0;
-$zero_hours    = 0;
+my $total_hours   = 0;
+my $missing_hours = 0;
+my $zero_hours    = 0;
 
-$day = $data->{ScheduleTimeSeries};
-foreach $d ( @{ $day } ) {
-    $in        = $d->{InArea}->{v};
-    $out       = $d->{OutArea}->{v};
-    $intervals = $d->{Period}->{Interval};
-    $time      = $d->{Period}->{TimeInterval}->{v};
-    $time =~ /\/(.{10})/; $time = $1;
+my %insum;   # total export sum to Germany grouped by areas
+my %outsum;  # total import sum into Germany grouped by areas
+
+my $day = $data->{ScheduleTimeSeries};
+foreach my $d ( @{ $day } ) {
+    my $in        = $d->{InArea}->{v};
+    my $out       = $d->{OutArea}->{v};
+    my $intervals = $d->{Period}->{Interval};
+    my $time      = $d->{Period}->{TimeInterval}->{v};
+    $time =~ /\/(.{10})/;
+    $time = $1;
 #    print "$out --> $in\n";
-    foreach $hour ( @{ $intervals } ) {
-        $h = $hour->{Pos}->{v};
+    foreach my $hour ( @{ $intervals } ) {
+        my $h = $hour->{Pos}->{v};
+        my $v = 0.;
         if ( !defined $hour->{Qty}->{v} || $hour->{Qty}->{v} eq "" ) {
             $missing_hours++;
-            $v = 0.;
         } else {
             $v = $hour->{Qty}->{v} / 1000.;
         }
