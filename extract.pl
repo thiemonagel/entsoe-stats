@@ -1,11 +1,15 @@
 #!/usr/bin/perl -w
 #
-# requires Debian package libxml-simple-perl
+# Script to extract data from XML file, build day-sums and convert to simple
+# output format.
+#
+# Requires Debian package libxml-simple-perl
 #
 # semantics:
-# "in":  from
-# "out": to
+# "in":  from = source
+# "out": to   = target
 
+use diagnostics;
 #use strict;
 
 my $infile = shift;
@@ -29,18 +33,30 @@ my $total_hours   = 0;
 my $missing_hours = 0;
 my $zero_hours    = 0;
 
-my %insum;   # total export sum to Germany grouped by areas
-my %outsum;  # total import sum into Germany grouped by areas
+my %insum;        # total sum of export for given area
+my %outsum;       # total sum of import for given area
+my %inout;        # total sum of transfer from 1st given area to 2nd given area
+my %indetail;     # sum of export for given date and given area
+my %outdetail;    # sum of import for given date and given area
+my %inoutdetail;  # sum of transfer for given date from 1st given area to 2nd given area
 
+
+#
+# obtain day-sum statistics
+#
+sub normalize_name($);  # definition is at the end
 my $day = $data->{ScheduleTimeSeries};
 foreach my $d ( @{ $day } ) {
-    my $in        = $d->{InArea}->{v};
-    my $out       = $d->{OutArea}->{v};
+    my $in        = normalize_name( $d->{InArea}->{v} );
+    my $out       = normalize_name( $d->{OutArea}->{v} );
     my $intervals = $d->{Period}->{Interval};
-    my $time      = $d->{Period}->{TimeInterval}->{v};
-    $time =~ /\/(.{10})/;
-    $time = $1;
+    my $date      = $d->{Period}->{TimeInterval}->{v};
+    $date =~ /\/(.{10})/;  # dates obtained this way are in UTC+1 = winter time
+    $date = $1;
 #    print "$out --> $in\n";
+
+    die "Bad data: expecting only transfers from/to Germany." if $in ne 'DE' && $out ne 'DE';
+
     foreach my $hour ( @{ $intervals } ) {
         my $h = $hour->{Pos}->{v};
         my $v = 0.;
@@ -52,36 +68,48 @@ foreach my $d ( @{ $day } ) {
         $total_hours++;
         $zero_hours++ if $v == 0.;
 #        print "$h: $v\n";
-        $insum{$in}   += $v;
-        $outsum{$out} += $v;
-        $inout{$in}{$out} += $v;
-        $outin{$out}{$in} += $v;
-        $indetail{$time}{$in}   += $v;
-        $outdetail{$time}{$out} += $v;
+        $insum{$in}                    += $v;
+        $outsum{$out}                  += $v;
+        $inout{$in}{$out}              += $v;
+        $indetail{$date}{$in}          += $v;
+        $outdetail{$date}{$out}        += $v;
+	$inoutdetail{$date}{$in}{$out} += $v;
     }
 #    print Dumper( $d );
 }
 
-$daycount = 0;
+
+#
+# write statistics to output file
+#
+my $daycount = 0;
+printf $fh '#   date  %8s', 'total';
+foreach $area ( sort keys %insum ) {
+    next if $area eq 'DE';
+    printf $fh "%8s ", $area;
+}
+print $fh "\n";
 foreach $day ( sort keys %indetail ) {
-    $insumde  = 0.;
-    $outsumde = 0.;
-    foreach $area ( keys %{$indetail{$day}} ) {
-        if ( $area =~ /^10YDE/ || $area =~ /^10YCB-GERMANY/ ) {
-            $insumde  += $indetail{$day}{$area};
-            $outsumde += $outdetail{$day}{$area};
-        }
+    my $insumde  = 0.;
+    my $outsumde = 0.;
+    my $total = $outdetail{$day}{'DE'} - $indetail{$day}{'DE'};
+    printf $fh "%s %8.3f ", $day, $total;
+    foreach $area ( sort keys %insum ) {
+	next if $area eq 'DE';
+	my $saldo = $inoutdetail{$day}{'DE'}{$area} - $inoutdetail{$day}{$area}{'DE'};
+	printf $fh "%8.3f ", $saldo;
     }
-    $saldo = $outsumde - $insumde;
-    printf $fh "%s: %5.1f GWh (in: %5.1f GWh, out: %5.1f GWh)\n",
-    $day, $saldo, $insumde, $outsumde;
+    printf $fh "\n";
     $daycount++;
 }
 
-$format = "%16s saldo: %6.1f GWh (%5.1f GWh/day), imports: %6.1f GWh, exports: %6.1f GWh\n";
 
-$insumde  = 0.;
-$outsumde = 0.;
+#
+# write summary statistics to stdout
+#
+my $insumde  = 0.;
+my $outsumde = 0.;
+my $format = "%s saldo: %7.1f GWh (%5.1f GWh/day), imports: %7.1f GWh, exports: %7.1f GWh\n";
 foreach $area ( sort keys %insum ) {
     $saldo  = $outsum{$area} - $insum{$area};
     $perday = $saldo / $daycount;
@@ -89,14 +117,14 @@ foreach $area ( sort keys %insum ) {
 
     foreach $out ( sort keys %{$inout{$area}} ) {
         $from = $inout{$area}{$out};
-        printf "\t%6.1f GWh from %s\n", $from, $out;
+        printf "\t%7.1f GWh from %s\n", $from, $out;
     }
-    foreach $in ( sort keys %{$outin{$area}} ) {
-        $to = $outin{$area}{$in};
-        printf "\t%6.1f GWh to   %s\n", $to, $in;
+    foreach $in ( sort keys %{$inout{$area}} ) {
+        $to = $inout{$in}{$area};
+        printf "\t%7.1f GWh to   %s\n", $to, $in;
     }
 
-    if ( $area =~ /^10YDE/ || $area =~ /^10YCB-GERMANY/ ) {
+    if ( $area eq 'DE' ) {
         $insumde  += $insum{$area};
         $outsumde += $outsum{$area};
     }
@@ -110,3 +138,30 @@ print "\n";
 printf "%i = %f%% total hours\n",   $total_hours,   100.;
 printf "%i = %f%% zero hours\n",    $zero_hours,    100. * $zero_hours    / $total_hours;
 printf "%i = %f%% missing hours\n", $missing_hours, 100. * $missing_hours / $total_hours;
+
+
+sub normalize_name($) {
+    my $name = shift;
+    if ( $name =~ /^10YAT/ || $name =~ /^10YCB-AUSTRIA/ ) {
+	$name = 'AT';
+    } elsif ( $name =~ /^10YCZ/ ) {
+	$name = 'CZ';
+    } elsif ( $name =~ /^10YCH/ ) {
+	$name = 'CH';
+    } elsif ( $name =~ /^10YDE/ || $name =~ /^10YCB-GERMANY/ ) {
+	$name = 'DE';
+    } elsif ( $name =~ /^10YDK/ ) {
+	$name = 'DK';
+    } elsif ( $name =~ /^10YFR/ ) {
+	$name = 'FR';
+    } elsif ( $name =~ /^10YNL/ ) {
+	$name = 'NL';
+    } elsif ( $name =~ /^10YPL/ ) {
+	$name = 'PL';
+    } elsif ( $name =~ /^10YSE/ || $name eq '10Y1001A1001A47J' ) {
+	$name = 'SE';
+    } else {
+	die "Unknown area: $name";
+    }
+    return $name;
+}
