@@ -33,7 +33,7 @@ while (<>) {
         print "LU->DE $year-$month $val (", ( defined $val ? "defined" : "undef/empty" ), ")\n";
     }
 
-    /(\d{4})-(\d{2})-(\d{2}): +(-?\d*\.\d*)/ or next;
+    /(\d{4})-(\d{2})-(\d{2})\s+(-?\d*\.\d*)/ or next;
     $year  = $1;
     $month = $2;
     $day   = $3;
@@ -99,8 +99,8 @@ while (<>) {
         }
     }
 
-    $ubefore   = timelocal( 0, 0, 0, 15, $monthbefore -1, $yearbefore );
-    $uafter    = timelocal( 0, 0, 0, 15, $monthafter  -1, $yearafter  );
+    $ubefore   = timelocal( 0, 0, 0, 16, $monthbefore -1, $yearbefore );
+    $uafter    = timelocal( 0, 0, 0, 16, $monthafter  -1, $yearafter  );
     $d         = $uafter - $ubefore;
     $lubefore  = $DELU{$yearbefore}{$monthbefore} - $LUDE{$yearbefore}{$monthbefore};
     $luafter   = $DELU{$yearafter }{$monthafter } - $LUDE{$yearafter }{$monthafter };
@@ -110,7 +110,7 @@ while (<>) {
 
     # Normalized javascript time.  Year is arbitrary because we want to
     # display all years on top of each other Jan-Dec.
-    $normtime = timelocal( 0, 0, 0, $day, $month-1, 1984 ) * 1000.;
+    $normtime = timelocal( 0, 0, 12, $day, $month-1, 1984 ) * 1000.;   # ( $sec, $min, $hour, $mday, $mon, $year );
 
     # Export to Luxemburg.
     $lasttime ||= $unixtime;  # prevent 0 value
@@ -151,7 +151,6 @@ while (<>) {
     }
     $avg7 = $sum7/$n7;
     $avg30 = $sum30/$n30;
-    $unixtime -= 1293836400;
     print "$year-$month-$day $val $avg7 $avg30 $cum lucorr: $lucorr\n";
     $flot{$year}{"1"}  {$normtime} = $val;
     $flot{$year}{"7"}  {$normtime} = $avg7   if ( $n7 > 6 );   # prevent inaccuracy: require all data
