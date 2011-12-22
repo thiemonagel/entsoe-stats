@@ -8,6 +8,9 @@ $cum = 0;
 $lasttime = 0;
 $lastyear = 0;
 while (<>) {
+    #
+    # .csv reading
+    #
     if ( /^Country_Exp/ ) {
         if ( /^Country_Exp,month,year,AT,BA,BE,BG,CH,CZ,DE,DK,DK,EE,ES,FI,FR,GB,GR,HR,HU,IE,IT,LT,LU,LV,ME,MK,NI,NL,NO,PL,PT,RO,RS,SE,SI,SK,UA,AL,BY,MA,MD,RU,TR,UA,DK/ ) {
             print "CSV format ok!\n";
@@ -22,7 +25,7 @@ while (<>) {
         @parts = split /,/;
         $val   = $parts[23];
         $DELU{$year}{$month} = $val if $val ne "";
-        print "DE->LU $year-$month $val (", ( defined $val ? "defined" : "undef/empty" ), ")\n";
+#        print "DE->LU $year-$month $val (", ( defined $val ? "defined" : "undef/empty" ), ")\n";
     }
     if ( /^LU,(\d+),(\d+)/ ) {
         $month = $1 + 0;
@@ -30,9 +33,13 @@ while (<>) {
         @parts = split /,/;
         $val   = $parts[9];
         $LUDE{$year}{$month} = $val if $val ne "";
-        print "LU->DE $year-$month $val (", ( defined $val ? "defined" : "undef/empty" ), ")\n";
+#        print "LU->DE $year-$month $val (", ( defined $val ? "defined" : "undef/empty" ), ")\n";
     }
 
+
+    #
+    # extract.pl data reading
+    #
     /(\d{4})-(\d{2})-(\d{2})\s+(-?\d*\.\d*)/ or next;
     $year  = $1;
     $month = $2;
@@ -161,8 +168,8 @@ while (<>) {
 open( $fdata, ">", "fdata.js" ) or die $!;  # data for flot
 print $fdata "/**\n";
 print $fdata " * data provided by entsoe.net -- the transparency platform of ENTSO-E\n";
-print $fdata " * please take note of their disclaimer: https://www.etsovista.org/res/disclaimer.pdf\n";
-print $fdata "\n";
+print $fdata " * please take note of their disclaimer: https://www.entsoe.net/res/disclaimer.pdf\n";
+print $fdata " *\n";
 print $fdata " * data aggregation by Thiemo Nagel\n";
 print $fdata " **/\n";
 print $fdata "\n";
