@@ -3,6 +3,11 @@
 # post process output of extract script, eg. adding moving average
 
 use Time::Local;
+use Getopt::Long;
+my $year   = 0;
+my $result = GetOptions( "year=i" => \$year );
+
+die "year unset" if !$year;
 
 $cum = 0;
 $lasttime = 0;
@@ -12,7 +17,7 @@ while (<>) {
     # .csv reading
     #
     if ( /^Country_Exp/ ) {
-        if ( /^Country_Exp,month,year,AT,BA,BE,BG,CH,CZ,DE,DK,DK,EE,ES,FI,FR,GB,GR,HR,HU,IE,IT,LT,LU,LV,ME,MK,NI,NL,NO,PL,PT,RO,RS,SE,SI,SK,UA,AL,BY,MA,MD,RU,TR,UA,DK/ ) {
+        if ( /^Country_Exp,month,year,AT,BA,BE,BG,CH,CS,CZ,DE,DK,DK,EE,ES,FI,FR,GB,GR,HR,HU,IE,IT,LT,LU,LV,ME,MK,NI,NL,NO,PL,PT,RO,RS,SE,SI,SK,UA,AL,BY,MA,MD,RU,TR,UA,DK/ ) {
             print "CSV format ok!\n";
         } else {
             die "Bad CSV format!";
@@ -23,7 +28,7 @@ while (<>) {
         $month = $1 + 0;
         $year  = $2 + 0;
         @parts = split /,/;
-        $val   = $parts[23];
+        $val   = $parts[24];
         $DELU{$year}{$month} = $val if $val ne "";
 #        print "DE->LU $year-$month $val (", ( defined $val ? "defined" : "undef/empty" ), ")\n";
     }
@@ -31,7 +36,7 @@ while (<>) {
         $month = $1 + 0;
         $year  = $2 + 0;
         @parts = split /,/;
-        $val   = $parts[9];
+        $val   = $parts[10];
         $LUDE{$year}{$month} = $val if $val ne "";
 #        print "LU->DE $year-$month $val (", ( defined $val ? "defined" : "undef/empty" ), ")\n";
     }
@@ -120,8 +125,10 @@ while (<>) {
     $normtime = timelocal( 0, 0, 12, $day, $month-1, 1984 ) * 1000.;   # ( $sec, $min, $hour, $mday, $mon, $year );
 
     # Export to Luxemburg.
-    $lasttime ||= $unixtime;  # prevent 0 value
-    $delta      = $unixtime - $lasttime;
+    if ( $lasttime == 0 ) {
+	$lasttime = $unixtime - 24*3600;
+    }
+    $delta  = $unixtime - $lasttime;
     $lu1    = $lubefore + ($lasttime-$ubefore)*($luafter-$lubefore)/$d;
     $lu2    = $lubefore + ($unixtime-$ubefore)*($luafter-$lubefore)/$d;
     $lucorr = $delta * ( $lu1 + $lu2 ) / 2.;
@@ -165,7 +172,7 @@ while (<>) {
     $flot{$year}{"cum"}{$normtime} = $cum;
 }
 
-open( $fdata, ">", "fdata.js" ) or die $!;  # data for flot
+open( $fdata, ">", "fdata$year.js" ) or die $!;  # data for flot
 print $fdata "/**\n";
 print $fdata " * data provided by entsoe.net -- the transparency platform of ENTSO-E\n";
 print $fdata " * please take note of their disclaimer: https://www.entsoe.net/res/disclaimer.pdf\n";
@@ -173,12 +180,10 @@ print $fdata " *\n";
 print $fdata " * data aggregation by Thiemo Nagel\n";
 print $fdata " **/\n";
 print $fdata "\n";
-print $fdata "var datasets = {\n";
+print $fdata "var datasets$year = {\n";
 
-$color = 1;
 foreach $year ( sort keys %flot ) {
-    $color++;
-#    $color++ if $color == 2;
+    my $color = $year - 2004;
     foreach $tag ( keys %{ $flot{$year} } ) {
         print $fdata "\"$year:$tag\": {\n";
         # disable label to disable legend
