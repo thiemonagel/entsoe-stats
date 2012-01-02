@@ -44,7 +44,7 @@ my %inoutdetail;  # sum of transfer for given date from 1st given area to 2nd gi
 #
 # obtain day-sum statistics
 #
-sub normalize_name($);  # definition is at the end
+sub normalize_name( $ );
 my $day = $data->{ScheduleTimeSeries};
 foreach my $d ( @{ $day } ) {
     my $in        = normalize_name( $d->{InArea}->{v} );
@@ -96,7 +96,7 @@ foreach $day ( sort keys %indetail ) {
     printf $fh "%s %8.3f ", $day, $total;
     foreach $area ( sort keys %insum ) {
 	next if $area eq 'DE';
-	my $saldo = $inoutdetail{$day}{'DE'}{$area} - $inoutdetail{$day}{$area}{'DE'};
+	my $saldo = $inoutdetail{$day}{$area}{'DE'} - $inoutdetail{$day}{'DE'}{$area};
 	printf $fh "%8.3f ", $saldo;
     }
     printf $fh "\n";
@@ -140,7 +140,7 @@ printf "%i = %f%% zero hours\n",    $zero_hours,    100. * $zero_hours    / $tot
 printf "%i = %f%% missing hours\n", $missing_hours, 100. * $missing_hours / $total_hours;
 
 
-sub normalize_name($) {
+sub normalize_name( $ ) {
     my $name = shift;
     if ( $name =~ /^10YAT/ || $name =~ /^10YCB-AUSTRIA/ ) {
 	$name = 'AT';
