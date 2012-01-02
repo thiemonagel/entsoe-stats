@@ -14,7 +14,7 @@ out=$(patsubst %.xml, %.out, $(flow) $(final))
 default: fdata2005.js fdata2006.js fdata2007.js fdata2008.js fdata2009.js fdata2010.js fdata2011.js 
 
 fdata%.js: post-process.pl Statistics_2005.csv ETSOVista-FinalSchedules-DE-%-1.out ETSOVista-PhysicalFlow-DE-%-1.out
-	./$^ --year $*
+	./post-process.pl --csvfile Statistics_2005.csv --year $* ETSOVista-FinalSchedules-DE-$*-1.out ETSOVista-PhysicalFlow-DE-$*-1.out
 
 Statistics_2005.csv: Statistics.csv
 	@mkdir -p $(data)
