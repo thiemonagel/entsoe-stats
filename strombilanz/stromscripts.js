@@ -22,7 +22,7 @@ choiceContainer.append(
 choiceContainer.find("input").click( plotAccordingToChoices )
 
 // Date of "Moratorium"
-var moradate = (new Date(1984, 3-1, 17)).getTime()
+var moradate = (new Date(2011, 3-1, 17)).getTime()
 
 var plot
 var last_aggregation = "none"
@@ -57,8 +57,8 @@ function UpdateLabel() {
 
 // Initialize plot with data.
 function InitPlot( data, type ) {
-    var startdate  = (new Date(1984,  1-1,  1)).getTime()
-    var enddate    = (new Date(1984, 12-1, 31)).getTime()
+    var startdate  = (new Date(2011,  1-1,  1)).getTime()
+    var enddate    = (new Date(2011, 12-1, 31)).getTime()
     var week       =   7. * 24. * 3600. * 1000.
     var year       = 365. * 24. * 3600. * 1000.
 
@@ -137,14 +137,18 @@ function plotAccordingToChoices() {
     var cdiv = $("#countrydiv")
     var ydiv = $("#yeardiv")
     var elem = cdiv.find( "input:checked" )
+    var col = 1
     while ( elem.length != 0 ) {
 	var country = elem.attr( "id" )
 	console.log( "country: " + country )
 	ydiv.find( "input:checked" ).each( function () {
             var year = $(this).attr("name")
 	    var name = "timeline_" + year + "_" + country + "_" + aggregation
-	    if ( typeof eval(name) !== "undefined" )
+	    if ( typeof eval(name) !== "undefined" ) {
+		eval(name).color = col
                 data.push( eval(name) )
+		col++
+	    }
 	} )
 	elem = elem.nextAll( "input:checked" )
     }
@@ -191,13 +195,13 @@ var count=0
 var path=""
 function cb() {
     count++
-    if ( count == 1 ) plotAccordingToChoices()
+    if ( count == 7 ) plotAccordingToChoices()
 }
 
-//loadScript( "/stuff/strombilanz/fdata2005.js", cb )
-//loadScript( "/stuff/strombilanz/fdata2006.js", cb )
-//loadScript( "/stuff/strombilanz/fdata2007.js", cb )
-//loadScript( "/stuff/strombilanz/fdata2008.js", cb )
-//loadScript( "/stuff/strombilanz/fdata2009.js", cb )
-//loadScript( "/stuff/strombilanz/fdata2010.js", cb )
+loadScript( path+"fdata2005.js", cb )
+loadScript( path+"fdata2006.js", cb )
+loadScript( path+"fdata2007.js", cb )
+loadScript( path+"fdata2008.js", cb )
+loadScript( path+"fdata2009.js", cb )
+loadScript( path+"fdata2010.js", cb )
 loadScript( path+"fdata2011.js", cb )

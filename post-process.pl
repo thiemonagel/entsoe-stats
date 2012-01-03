@@ -3,18 +3,27 @@
 # post process output of extract script, eg. adding moving average
 
 #use diagnostics;
-#use strict;
+use strict;
 
 use POSIX qw(strftime);
 use Time::Local;
 use Getopt::Long;
-my $year     = 0;
-my $csv_file = '';
-my $result   = GetOptions( "csvfile=s" => \$csv_file,
-			   "year=i"    => \$year );
+
+my $dbg         = 1;
+my $baseunit    = 1e9/24.;  # GWh/day
+my $dispunit    = 1e9;      # GW sustained
+my $dispyear    = 2011;     # no leap year
+
+my $year_first  = 2005;
+my $year_last   = 2012;
+my $output_year = 1;
+my $csv_file    = '';
+my $result      = GetOptions( "csvfile=s" => \$csv_file,
+			      "year=i"    => \$output_year );   # 1: magic value for "all years"
 
 die "csvfile unset" if !$csv_file;
-die "year unset"    if !$year;
+die "year unset"    if !$output_year;
+
 
 my $fmt_short = '%Y-%m';
 my $fmt_long  = '%F %T';
@@ -39,7 +48,7 @@ while (<CSV>) {
     chomp;
     if ( /^Country_Exp/ ) {
         if ( /^$csv_magic/ ) {
-            print "CSV format ok!\n";
+#            print "CSV format ok!\n";
 	    $csv_ok = 1;
         } else {
             die "Bad CSV format!";
@@ -61,6 +70,11 @@ while (<CSV>) {
 		$val = '' if ! defined $val;
 		my $utime = timegm( 0, 0, 0, 16, $month-1, $year );   # ( $sec, $min, $hour, $mday, $mon, $year );
 		if ( $val ne '' ) {
+		    $val *= $baseunit / $dispunit;
+		    # ignore 29th Feb in leap years
+		    if ( $month == 2 && $year % 4 == 0 && ( $year % 100 != 0 || $year % 400 == 0 ) ) {
+			$val *= 28 / 29.;
+		    }
 		    $csv_data{$from}{$to}{$year}{$month} = $val;
 		    $csv_data_utime{$from}{$to}{$utime}  = $val;
 		    print "$from->$to $year-$month $val\n" if ( $from eq 'DE' && $to eq $csv_debug || $from eq $csv_debug && $to eq 'DE' );
@@ -90,7 +104,7 @@ foreach my $country ( sort keys %csv_neighbours ) {
     $lminimal = $l if $l > $lminimal;
     my $h = ( $h1 > $h2 ? $h2 : $h1 ) - 12 * 3600;
     $hminimal = $h if $h < $hminimal;
-    print "DE <--> $country:  ", strftime( $fmt_short, gmtime( $l ) ), " ... ", strftime( $fmt_short, gmtime( $h ) ), "\n";
+    print "entsoe.eu: DE <--> $country:  ", strftime( $fmt_short, gmtime( $l ) ), " ... ", strftime( $fmt_short, gmtime( $h ) ), "\n";
     for ( my $utime = $l; $utime <= $h; $utime += 24 * 3600 ) {
 	$daily{"${country}_"}{$utime} = interpolate( 'DE', $country, $utime, 3600*24 ) - interpolate( $country, 'DE', $utime, 3600*24 );
     }
@@ -129,67 +143,193 @@ while (<>) {
     my $year  = $1;
     my $month = $2;
     my $day   = $3;
+    
+    # ignore 29th Feb in leap years
+    next if ( $month == 2 && $day == 29 );
+
     my $utime = timegm( 0, 0, 12, $day, $month-1, $year );   # ( $sec, $min, $hour, $mday, $mon, $year );
 
     # Skip data points which are not sequential.  This way it is possible to
     # combine the more up-to-date physical flow data with more accurate, but
     # delayed, final schedules.
     if ( $utime <= $lastutime ) {
-        print "Skipping duplicate: $_";
+        print "Skipping duplicate: $_\n" if $dbg;
         next;
     }
+    $lastutime = $utime;
 
     die( "legend missing" ) if scalar @legend == 0;
     my @tokens = split;
 
     for ( my $i=1; $i < scalar @legend; $i++ ) {
 	my $tag = $legend[$i];
-	$daily{$tag}{$utime} = $tokens[$i];
+	my $val = $tokens[$i] * $baseunit / $dispunit;
+	$daily{$tag}{$utime} = $val;
     }
 }
 
-sub add_timeline ( $$$ );
-sub avg_timeline ( $$ );
-sub cum_timeline ( $ );
-sub emit_timeline( $$$$$$ );
+sub add_timeline       ( $$$ );
+sub avg_timeline_years ( $$% );
+sub avg_timeline_years2( $$% );
+sub cmp_timeline       ( $$ );
+sub avg_timeline       ( $$ );
+sub cum_timeline       ( $ );
+sub emit_timeline      ( $$$$$$ );
 
-add_timeline( \%{ $daily{'total'} }, \%{ $daily{'LU'} }, 1. );
+add_timeline( $daily{'total'}, $daily{'LU'}, 1. );
+avg_timeline_years2( 'total', 'totalavg', ( 2009 => 1, 2010 => 1 ) );
+use Clone qw(clone);  # debian package: libclone-perl
+$daily{'delta'} = clone( $daily{'total'} );
+add_timeline( $daily{'delta'}, $daily{'totalavg'}, -1. );
 
-my $file;
-open( $file, ">", "fdata$year.js" ) or die $!;  # data for flot
-my $color=1;
-foreach my $country ( sort keys %daily ) {
-    my $year = 2011;
-    emit_timeline( $daily{$country}, $year, $country, '1', $color, $file );
-    my %tl = avg_timeline( $daily{$country}, 7 );
-    emit_timeline( \%tl, $year, $country, '7', $color, $file );
-    %tl = avg_timeline( $daily{$country}, 30 );
-    emit_timeline( \%tl, $year, $country, '30', $color, $file );
-    %tl = cum_timeline( $daily{$country} );
-    emit_timeline( \%tl, $year, $country, 'cum', $color, $file );
-    $color++;
+foreach my $tag ( sort keys %daily ) {
+    next if $tag =~ /_$/;
+    cmp_timeline( $tag, "${tag}_" );
 }
-close( $file );
+
+my $color=1;
+for ( my $year = $year_first; $year <= $year_last; $year++ )
+{
+    next if $year != $output_year && $output_year != 1;
+
+    my $file;
+    open( $file, ">", "fdata$year.js" ) or die $!;  # data for flot
+    print "Writing to file: fdata$year.js\n";
+    foreach my $tag ( sort keys %daily ) {
+	emit_timeline( $daily{$tag}, $year, $tag, '1', $color, $file );
+	my %tl = avg_timeline( $daily{$tag}, 7 );
+	emit_timeline( \%tl, $year, $tag, '7', $color, $file );
+	%tl = avg_timeline( $daily{$tag}, 30 );
+	emit_timeline( \%tl, $year, $tag, '30', $color, $file );
+	%tl = cum_timeline( $daily{$tag} );
+	emit_timeline( \%tl, $year, $tag, 'cum', $color, $file );
+	$color++;
+    }
+    close( $file );
+}
+
+#{
+#    my $year = 10000;
+#    my $file;
+#    open( $file, ">", "fdata$year.js" ) or die $!;  # data for flot
+#    print "Writing to file: fdata$year.js\n";
+#    {
+#	my $tag = 'total';
+#	emit_timeline( $daily{$tag}, $year, $tag, '1', $color, $file );
+#	my %tl = avg_timeline( $daily{$tag}, 7 );
+#	emit_timeline( \%tl, $year, $tag, '7', $color, $file );
+#	%tl = avg_timeline( $daily{$tag}, 30 );
+#	emit_timeline( \%tl, $year, $tag, '30', $color, $file );
+#	%tl = cum_timeline( $daily{$tag} );
+#	emit_timeline( \%tl, $year, $tag, 'cum', $color, $file );
+#	$color++;
+# #   }
+#    close( $file );
+#}
 
 exit 0;
 
 
 # Add one timeline to another: $tl += $factor * $tl2
-sub BinSearch( $@ );
+sub BinSearch( $$ );
 sub add_timeline( $$$ ) {
     my $tl     = shift;  # reference to base timeline
-    my $tl2    = shift;  # addition timeline
+    my $tl2    = shift;  # reference to addition timeline
     my $factor = shift;  # scale factor to be applied to tl2
 
     foreach my $utime ( sort keys %{ $tl } ) {
 	if ( ! exists $tl2->{$utime} ) {
 	    my @keys = sort keys %{ $tl2 };
-	    my $ret = BinSearch( $utime, @keys );
-	    die( "tl2 range insufficient: " . strftime( $fmt_long, gmtime( $utime ) ) . "\n"
+	    my $ret = BinSearch( $utime, \@keys );
+	    die( "add_timeline(): tl2 range insufficient: " . strftime( $fmt_long, gmtime( $utime ) ) . "\n"
 		 ." >= " . strftime( $fmt_long, gmtime( $keys[$ret] ) ) . "\n"
 		 ." < "  . ( $ret > 0 ? strftime( $fmt_long, gmtime( $keys[$ret-1] ) ) : 'none' ) . "\n" );
 	}
 	$tl->{$utime} += $factor * $tl2->{$utime};
+    }
+}
+
+sub avg_timeline_years( $$% ) {
+    my $tag      = shift;  # tag of timeline to average
+    my $fakeyear = shift;  # fake year to use for averaged data
+    my %years    = @_;     # years over which is averaged
+
+    my $n        = scalar keys %years;
+    my $tl       = $daily{$tag};  # reference to timeline
+    foreach my $utime ( sort keys %{ $tl } ) {
+	(my $sec, my $min, my $hour, my $mday, my $month, my $year, my $wday, my $yday, my $isdst) = gmtime( $utime );
+	$year += 1900;
+	next if ! exists $years{$year};
+	$year = $fakeyear;
+	my $fakeutime = timegm( $sec, $min, $hour, $mday, $month, $year );
+	$tl->{$fakeutime} = 0. if ! exists $tl->{$fakeutime};
+	$tl->{$fakeutime} += $tl->{$utime} / $n;
+    }
+}
+
+sub avg_timeline_years2( $$% ) {
+    my $tag1     = shift;  # tag of timeline to average
+    my $tag2     = shift;  # new tag for averaged timeline
+    my %years    = @_;     # years over which is averaged
+
+    my $n        = scalar keys %years;
+    my $tl       = $daily{$tag1};  # reference to timeline
+
+    my %outyears;  # years for which average should be written
+    foreach my $utime ( sort keys %{ $tl } ) {
+	(my $sec, my $min, my $hour, my $mday, my $month, my $year, my $wday, my $yday, my $isdst) = gmtime( $utime );
+	$year += 1900;
+	$outyears{$year} = 1;
+    }
+    
+    foreach my $utime ( sort keys %{ $tl } ) {
+	(my $sec, my $min, my $hour, my $mday, my $month, my $year, my $wday, my $yday, my $isdst) = gmtime( $utime );
+	$year += 1900;
+	next if ! exists $years{$year};
+	foreach my $y ( sort keys %outyears ) {
+	    $year = $y;
+	    my $fakeutime = timegm( $sec, $min, $hour, $mday, $month, $year );
+	    $daily{$tag2}{$fakeutime} = 0. if ! exists $daily{$tag2}{$fakeutime};
+	    $daily{$tag2}{$fakeutime} += $tl->{$utime} / $n;
+	}
+    }
+}
+
+# Compare two timelines
+sub cmp_timeline( $$ ) {
+    my $tag1 = shift;
+    my $tag2 = shift;
+
+    return if ! exists $daily{$tag1};
+    return if ! exists $daily{$tag2};
+
+    print "Comparing $tag1 and $tag2\n";
+    my $tl   = $daily{$tag1};  # reference to 1st timeline
+    my $tl2  = $daily{$tag2};  # reference to 2nd timeline
+
+    my $sum      = 0.;
+    my $sum2     = 0.;
+    my $lastyear = 0;
+    foreach my $utime ( sort keys %{ $tl } ) {
+	(my $sec, my $min, my $hour, my $mday, my $month, my $year, my $wday, my $yday, my $isdst) = gmtime( $utime );
+	$year += 1900;
+
+	if ( $year != $lastyear && $lastyear != 0 || ! exists $tl2->{$utime} ) {
+	    my $delta   = $sum2-$sum;
+	    my $percent = $delta * 2. * 100. / ($sum+$sum2);
+	    printf "\t$lastyear delta: %9.3f (approx. %7.1f%%)", $delta, $percent;
+	    $sum  = 0.;
+	    $sum2 = 0.;
+	    if ( ! exists $tl2->{$utime} ) {
+		print " (last data point: ", strftime( $fmt_long, gmtime( $utime ) ), ")\n";
+		return;
+	    }
+	    print "\n";
+	}
+	$lastyear = $year;
+
+	$sum  += $tl->{$utime};
+	$sum2 += $tl2->{$utime};
     }
 }
 
@@ -245,9 +385,9 @@ sub emit_timeline( $$$$$$ ) {
     my $color = shift;
     my $file  = shift;
 
-    print "Emitting $y $tag $agg (full size: ", scalar keys %{ $tl }, ", ";
+#    print "Emitting $y $tag $agg (full size: ", scalar keys %{ $tl }, ", ";
 
-    print $file "var timeline_${year}_${tag}_${agg} = {\n";
+    print $file "var timeline_${y}_${tag}_${agg} = {\n";
     # disable label to disable legend
     print $file "\tlabel: \"$tag\",\n";
     print $file "\tcolor: $color,\n";
@@ -255,16 +395,21 @@ sub emit_timeline( $$$$$$ ) {
 
     my $linecount = 0;
     foreach my $utime ( sort keys %{ $tl } ) {
-	(my $sec, my $min, my $hour, my $mday, my $month, my $year, my $wday, my $yday, my $isdst) = gmtime( $utime );
+	(my $sec, my $min, my $hour, my $day, my $month, my $year, my $wday, my $yday, my $isdst) = gmtime( $utime );
 	$year += 1900;
 	next if $year != $y;
 
+	# ignore 29th Feb in leap years
+	next if ( $month+1 == 2 && $day == 29 );
+
 	# Normalized javascript time.  Year is arbitrary because we want to
 	# display all years on top of each other Jan-Dec.
-	my $jtime = timegm( 0, 0, 12, $mday, $month, 1984 );   # ( $sec, $min, $hour, $mday, $mon, $year );
+	my $jtime = timegm( 0, 0, 12, $day, $month, $dispyear );   # ( $sec, $min, $hour, $mday, $mon, $year );
 	$jtime *= 1000.;  # javascript time is in milliseconds
 
-	print $file "\t\t[$jtime, " . $tl->{$utime} . "],\n";
+	print $file "\t\t[$jtime, " . $tl->{$utime} . "],";
+	print $file " // ", strftime( $fmt_long, gmtime( $utime ) ) if $dbg;
+	print $file "\n";
 	$linecount++;
     }
     print $file "\t]\n";
@@ -306,25 +451,25 @@ sub emit_timeline( $$$$$$ ) {
     print $file "\t}\n";
     print $file "}\n";
 
-    print "lines written: $linecount)\n";
+#    print "lines written: $linecount)\n";
 }
 
 
 # Return first value which is greater or equal to $val.
-sub BinSearch( $@ ) {
+sub BinSearch( $$ ) {
     my $val    = shift;
-    my @a      = @_;
-    my $minpos = 0;             # smaller than $val
-    my $maxpos = scalar @a -1;  # greater or equal to $val
+    my $a      = shift;
+    my $minpos = 0;                # smaller than $val
+    my $maxpos = scalar @{$a} -1;  # greater or equal to $val
 
     # check out of range
-    if ( $val < $a[$minpos] || $a[$maxpos] < $val ) {
+    if ( $val < $a->[$minpos] || $a->[$maxpos] < $val ) {
 	return -1;
     }
 
     while ( $maxpos - $minpos > 1 ) {
 	my $pos = int( ($maxpos+$minpos)/2 );
-	if ( $a[$pos] < $val ) {
+	if ( $a->[$pos] < $val ) {
 	    $minpos = $pos;
 	} else {
 	    $maxpos = $pos;
@@ -343,7 +488,7 @@ sub interpolate( $$$$ ) {
     my $data_utime = \%{ $csv_data_utime{$from}{$to} };
     my @autime     = sort keys %{ $data_utime };
     
-    my $ige = BinSearch( $utime, @autime );
+    my $ige = BinSearch( $utime, \@autime );
     die "interpolate: out of range: $from $to ", strftime( $fmt_long, gmtime( $utime ) ) , " $integral" if $ige == -1;
 
     my $ilo    = $ige-1;
@@ -366,7 +511,7 @@ sub extrapolate( $$$$ ) {
     my $data       = \%{ $csv_data{$from}{$to} };
     my @autime     = sort keys %{ $data_utime };
     
-    my $ige = BinSearch( $utime, @autime );
+    my $ige = BinSearch( $utime, \@autime );
     return interpolate( $from, $to, $utime, $integral ) if ( $ige != -1 );
 
     (my $sec, my $min, my $hour, my $day, my $month, my $year, my $wday, my $yday, my $isdst) = gmtime( $utime );
