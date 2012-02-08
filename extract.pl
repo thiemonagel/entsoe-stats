@@ -31,6 +31,8 @@ my $data = $xml->XMLin( $infile );
 
 my $total_hours   = 0;
 my $missing_hours = 0;
+my $missing_days  = 0;
+my $missing_pdays = 0;  # missing partial days
 my $zero_hours    = 0;
 
 my %insum;        # total sum of export for given area
@@ -57,11 +59,13 @@ foreach my $d ( @{ $day } ) {
 
     die "Bad data: expecting only transfers from/to Germany." if $in ne 'DE' && $out ne 'DE';
 
+    my $daymissing = 0;
     foreach my $hour ( @{ $intervals } ) {
         my $h = $hour->{Pos}->{v};
         my $v = 0.;
         if ( !defined $hour->{Qty}->{v} || $hour->{Qty}->{v} eq "" ) {
             $missing_hours++;
+            $daymissing++;
         } else {
             $v = $hour->{Qty}->{v} / 1000.;
         }
@@ -74,6 +78,12 @@ foreach my $d ( @{ $day } ) {
         $indetail{$date}{$in}          += $v;
         $outdetail{$date}{$out}        += $v;
 	$inoutdetail{$date}{$in}{$out} += $v;
+    }
+    if ( $daymissing == 24 ) {
+	$inoutdetail{$date}{$in}{$out} = "N/A";
+        $missing_days++;
+    } elsif ( $daymissing > 0 ) {
+        $missing_pdays++;
     }
 #    print Dumper( $d );
 }
@@ -96,8 +106,14 @@ foreach $day ( sort keys %indetail ) {
     printf $fh "%s %8.3f ", $day, $total;
     foreach $area ( sort keys %insum ) {
 	next if $area eq 'DE';
-	my $saldo = $inoutdetail{$day}{$area}{'DE'} - $inoutdetail{$day}{'DE'}{$area};
-	printf $fh "%8.3f ", $saldo;
+        if ( $inoutdetail{$day}{$area}{'DE'} eq "N/A" || $inoutdetail{$day}{'DE'}{$area} eq "N/A" ) {
+            die( "only one direction missing" )
+                if $inoutdetail{$day}{$area}{'DE'} ne "N/A" || $inoutdetail{$day}{'DE'}{$area} ne "N/A";
+            printf $fh "%8s ", "N/A";
+        } else {
+            my $saldo = $inoutdetail{$day}{$area}{'DE'} - $inoutdetail{$day}{'DE'}{$area};
+            printf $fh "%8.3f ", $saldo;
+        }
     }
     printf $fh "\n";
     $daycount++;
@@ -138,6 +154,8 @@ print "\n";
 printf "%i = %f%% total hours\n",   $total_hours,   100.;
 printf "%i = %f%% zero hours\n",    $zero_hours,    100. * $zero_hours    / $total_hours;
 printf "%i = %f%% missing hours\n", $missing_hours, 100. * $missing_hours / $total_hours;
+printf "%i missing days\n",  $missing_days;
+printf "%i partially missing days\n",  $missing_pdays;
 
 
 sub normalize_name( $ ) {
