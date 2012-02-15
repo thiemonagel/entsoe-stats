@@ -1,7 +1,3 @@
-# Statistics_2004.csv may be obtained as .xls from
-# https://www.entsoe.eu/db-query/exchange/detailed-electricity-exchange/
-# --> From 01/2004 to 12/2011, Output: XLS, Export Country: ALL, Import Country: ALL
-
 SHELL=/bin/bash
 data=../data2
 date=$(shell date +%Y-%m-%d)
@@ -10,11 +6,12 @@ final=$(wildcard ETSOVista-FinalSchedules*.xml)
 xml2=$(patsubst %.xml, %.xml2, $(flow) $(final))
 out=$(patsubst %.xml, %.out, $(flow) $(final))
 
-.PHONY: default
-default: fdata2005.js fdata2006.js fdata2007.js fdata2008.js fdata2009.js fdata2010.js fdata2011.js 
 
-fdata%.js: post-process.pl Statistics_2005.csv ETSOVista-FinalSchedules-DE-%-1.out ETSOVista-PhysicalFlow-DE-%-1.out
-	./post-process.pl --csvfile Statistics_2005.csv --year $* ETSOVista-FinalSchedules-DE-$*-1.out ETSOVista-PhysicalFlow-DE-$*-1.out
+.PHONY: default
+default: fdata2005.js fdata2006.js fdata2007.js fdata2008.js fdata2009.js fdata2010.js fdata2011.js fdata2012.js 
+
+fdata%.js: post-process.pl Statistics_2004.csv ETSOVista-FinalSchedules-DE-%-1.out ETSOVista-PhysicalFlow-DE-%-1.out
+	./post-process.pl --csvfile Statistics_2004.csv --year $* ETSOVista-FinalSchedules-DE-$*-1.out ETSOVista-PhysicalFlow-DE-$*-1.out
 
 Statistics_2004.csv: Statistics.csv
 	@mkdir -p $(data)
