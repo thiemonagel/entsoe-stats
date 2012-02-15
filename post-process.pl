@@ -1,17 +1,24 @@
 #!/usr/bin/perl -w
 #
-# post process output of extract script, eg. adding moving average
+# Post process output of extract script, eg. of adding moving average.
+#
+# Input files must be specified in order of priority:  most important first.
+# Subsequent files will only be used for data points that are missing from
+# earlier files.
+#
+# Requires debian package: libclone-perl
 
 #use diagnostics;
 use strict;
 
+use Clone qw(clone);
+use Getopt::Long;
 use POSIX qw(strftime);
 use Time::Local;
-use Getopt::Long;
 
 my $dbg         = 1;
-my $baseunit    = 1e9/24.;  # GWh/day
-my $dispunit    = 1e9;      # GW sustained
+my $baseunit    = 1e9/24.;  # GWh/day (unit of input data)
+my $dispunit    = 1e9;      # GW sustained (unit of output data)
 my $dispyear    = 2011;     # no leap year
 
 my $year_first  = 2005;
@@ -106,16 +113,16 @@ foreach my $country ( sort keys %csv_neighbours ) {
     $hminimal = $h if $h < $hminimal;
     print "entsoe.eu: DE <--> $country:  ", strftime( $fmt_short, gmtime( $l ) ), " ... ", strftime( $fmt_short, gmtime( $h ) ), "\n";
     for ( my $utime = $l; $utime <= $h; $utime += 24 * 3600 ) {
-	$daily{"${country}_"}{$utime} = interpolate( 'DE', $country, $utime, 3600*24 ) - interpolate( $country, 'DE', $utime, 3600*24 );
+	$daily{"${country}_CSV"}{$utime} = interpolate( 'DE', $country, $utime, 3600*24 ) - interpolate( $country, 'DE', $utime, 3600*24 );
     }
 }
 
-# interpolation of total_
-print "Interpolate total_: ", strftime( $fmt_short, gmtime( $lminimal ) ), " ... ", strftime( $fmt_short, gmtime( $hminimal ) ), "\n";
+# interpolation of total_CSV
+print "Interpolate total_CSV: ", strftime( $fmt_short, gmtime( $lminimal ) ), " ... ", strftime( $fmt_short, gmtime( $hminimal ) ), "\n";
 for ( my $utime = $lminimal; $utime <= $hminimal; $utime += 24 * 3600 ) {
-    $daily{"total_"}{$utime} = 0;
+    $daily{'total_CSV'}{$utime} = 0;
     foreach my $country ( sort keys %csv_neighbours ) {
-	$daily{"total_"}{$utime} += interpolate( 'DE', $country, $utime, 3600*24 ) - interpolate( $country, 'DE', $utime, 3600*24 );
+	$daily{'total_CSV'}{$utime} += interpolate( 'DE', $country, $utime, 3600*24 ) - interpolate( $country, 'DE', $utime, 3600*24 );
     }
 }
 
@@ -123,16 +130,25 @@ for ( my $utime = $lminimal; $utime <= $hminimal; $utime += 24 * 3600 ) {
 $hminimal += 365 * 24 * 3600;
 print "Extrapolate LU: ", strftime( $fmt_short, gmtime( $lminimal ) ), " ... ", strftime( $fmt_short, gmtime( $hminimal ) ), "\n";
 for ( my $utime = $lminimal; $utime <= $hminimal; $utime += 24 * 3600 ) {
-    $daily{'LU'}{$utime} = extrapolate( 'DE', 'LU', $utime, 3600*24 ) - extrapolate( 'LU', 'DE', $utime, 3600*24 );
+    $daily{'LU_CSV'}{$utime} = extrapolate( 'DE', 'LU', $utime, 3600*24 ) - extrapolate( 'LU', 'DE', $utime, 3600*24 );
 }
 
 
 #
 # extract.pl data reading
 #
-my $lastutime = 0;
 my @legend = ();
+print "Reading XML data:\n";
+my $lastfile = '';
+my $filecount = 0; 
 while (<>) {
+    if ( $lastfile ne $ARGV ) {
+        print "$filecount\n" if $lastfile;
+        print "$ARGV: ";
+        $filecount = 0;
+        $lastfile = $ARGV;
+    }
+
     chomp;
     if ( /^#/ ) {
 	@legend = split;
@@ -149,24 +165,27 @@ while (<>) {
 
     my $utime = timegm( 0, 0, 12, $day, $month-1, $year );   # ( $sec, $min, $hour, $mday, $mon, $year );
 
-    # Skip data points which are not sequential.  This way it is possible to
-    # combine the more up-to-date physical flow data with more accurate, but
-    # delayed, final schedules.
-    if ( $utime <= $lastutime ) {
-        print "Skipping duplicate: $_\n" if $dbg;
-        next;
-    }
-    $lastutime = $utime;
-
     die( "legend missing" ) if scalar @legend == 0;
     my @tokens = split;
 
     for ( my $i=1; $i < scalar @legend; $i++ ) {
 	my $tag = $legend[$i];
-	my $val = $tokens[$i] * $baseunit / $dispunit;
+	my $val = $tokens[$i];
+        
+        # skip missing values
+        next if $val eq "N/A";
+
+        # skip if value has already been read from an earlier file
+        next if defined $daily{$tag}{$utime};
+
+        $val *= $baseunit / $dispunit;
 	$daily{$tag}{$utime} = $val;
+        $filecount++;
     }
 }
+print "$filecount\n" if $lastfile;
+print "\n";
+
 
 sub add_timeline       ( $$$ );
 sub avg_timeline_years ( $$% );
@@ -176,10 +195,11 @@ sub avg_timeline       ( $$ );
 sub cum_timeline       ( $ );
 sub emit_timeline      ( $$$$$$ );
 
-add_timeline( $daily{'total'}, $daily{'LU'}, 1. );
+print "add_timeline: total += LU\n";
+add_timeline( $daily{'total'}, $daily{'LU_CSV'}, 1. );
 avg_timeline_years2( 'total', 'totalavg', ( 2009 => 1, 2010 => 1 ) );
-use Clone qw(clone);  # debian package: libclone-perl
 $daily{'delta'} = clone( $daily{'total'} );
+print "add_timeline: delta -= totalavg\n";
 add_timeline( $daily{'delta'}, $daily{'totalavg'}, -1. );
 
 foreach my $tag ( sort keys %daily ) {
@@ -231,6 +251,7 @@ exit 0;
 
 
 # Add one timeline to another: $tl += $factor * $tl2
+# Time points of $tl2 must be the same or a superset of $tl.
 sub BinSearch( $$ );
 sub add_timeline( $$$ ) {
     my $tl     = shift;  # reference to base timeline
@@ -457,13 +478,13 @@ sub emit_timeline( $$$$$$ ) {
 
 # Return first value which is greater or equal to $val.
 sub BinSearch( $$ ) {
-    my $val    = shift;
-    my $a      = shift;
+    my $val    = shift;   # needle
+    my $a      = shift;   # haystack: sorted array
     my $minpos = 0;                # smaller than $val
     my $maxpos = scalar @{$a} -1;  # greater or equal to $val
 
     # check out of range
-    if ( $val < $a->[$minpos] || $a->[$maxpos] < $val ) {
+    if ( $maxpos < 0 || $val < $a->[$minpos] || $a->[$maxpos] < $val ) {
 	return -1;
     }
 
