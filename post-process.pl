@@ -410,7 +410,7 @@ sub emit_timeline( $$$$$$ ) {
 
     print $file "var timeline_${y}_${tag}_${agg} = {\n";
     # disable label to disable legend
-    print $file "\tlabel: \"$tag\",\n";
+    print $file "\tlabel: \"$y\",\n";
     print $file "\tcolor: $color,\n";
     print $file "\tdata: [\n";
 
