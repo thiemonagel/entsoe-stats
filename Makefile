@@ -1,6 +1,7 @@
 SHELL=/bin/bash
 data=../data2
 date=$(shell date +%Y-%m-%d)
+utime=$(shell date +%s)
 flow=$(wildcard ETSOVista-PhysicalFlow*.xml)
 final=$(wildcard ETSOVista-FinalSchedules*.xml)
 xml2=$(patsubst %.xml, %.xml2, $(flow) $(final))
