@@ -1,6 +1,7 @@
 TODO
 ====
 
+* add more detailed checks and statistics on missing data points (extract.pl)
 * normalise to monthly values from entsoe.eu, extrapolate
   from previous years where data is missing
 * increase vertical size of plot

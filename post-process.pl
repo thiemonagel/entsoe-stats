@@ -24,12 +24,19 @@ my $dispyear    = 2011;     # no leap year
 my $year_first  = 2005;
 my $year_last   = 2012;
 my $output_year = 1;
+my $output_csv  = 0;
+my $output_stem = '';
+my $content     = '';
 my $csv_file    = '';
-my $result      = GetOptions( "csvfile=s" => \$csv_file,
-			      "year=i"    => \$output_year );   # 1: magic value for "all years"
+my $result      = GetOptions( "content=s" => \$content,         # data source
+			      "csvfile=s" => \$csv_file,
+			      "outstem=s" => \$output_stem,
+			      "outcsv"    => \$output_csv,      # output csv data?
+			      "outyear=i" => \$output_year );   # 1: magic value for "all years"
 
-die "csvfile unset" if !$csv_file;
-die "year unset"    if !$output_year;
+die "csvfile unset" unless $csv_file;
+die "outstem unset" unless $output_stem;
+die "year unset"    unless $output_year;
 
 
 my $fmt_short = '%Y-%m';
@@ -94,6 +101,17 @@ while (<CSV>) {
 }
 close CSV;
 
+for ( my $year = 2006; $year < 2012; $year++ ) {
+    my $sum = 0.;
+    for ( my $month = 1; $month <= 12; $month++ ) {
+	foreach my $country ( sort keys %csv_neighbours ) {
+	    $sum += $csv_data{'DE'}{$country}{$year}{$month};
+	    $sum -= $csv_data{$country}{'DE'}{$year}{$month};
+	}
+    }
+    printf "CSV yearsum %i: %f (%f GWh)\n", $year, $sum, $sum * $dispunit/$baseunit;
+}
+
 
 #
 # create interpolated timelines from .csv data
@@ -137,54 +155,58 @@ for ( my $utime = $lminimal; $utime <= $hminimal; $utime += 24 * 3600 ) {
 #
 # extract.pl data reading
 #
-my @legend = ();
-print "Reading XML data:\n";
-my $lastfile = '';
-my $filecount = 0; 
-while (<>) {
-    if ( $lastfile ne $ARGV ) {
-        print "$filecount\n" if $lastfile;
-        print "$ARGV: ";
-        $filecount = 0;
-        $lastfile = $ARGV;
+my $filecount = 0;
+if ( @ARGV ) {
+    my @legend = ();
+    print "Reading XML data:\n";
+    my $lastfile = '';
+    while (<>) {
+	die "content unset" if !$content;
+	
+	if ( $lastfile ne $ARGV ) {
+	    print "$filecount data points.\n" if $lastfile;
+	    print "$ARGV: ";
+	    $filecount = 0;
+	    $lastfile = $ARGV;
+	}
+	
+	chomp;
+	if ( /^#/ ) {
+	    @legend = split;
+	    shift @legend;
+	    next;
+	}
+	/^(\d{4})-(\d{2})-(\d{2})/ or next;
+	my $year  = $1;
+	my $month = $2;
+	my $day   = $3;
+	
+	# ignore 29th Feb in leap years
+	next if ( $month == 2 && $day == 29 );
+	
+	my $utime = timegm( 0, 0, 12, $day, $month-1, $year );   # ( $sec, $min, $hour, $mday, $mon, $year );
+	
+	die( "legend missing" ) if scalar @legend == 0;
+	my @tokens = split;
+	
+	for ( my $i=1; $i < scalar @legend; $i++ ) {
+	    my $tag = $legend[$i];
+	    my $val = $tokens[$i];
+	    
+	    # skip missing values
+	    next if $val eq "N/A";
+	    
+	    # skip if value has already been read from an earlier file
+	    next if defined $daily{$tag}{$utime};
+	    
+	    $val *= $baseunit / $dispunit;
+	    $daily{$tag}{$utime} = $val;
+	    $filecount++;
+	}
     }
-
-    chomp;
-    if ( /^#/ ) {
-	@legend = split;
-	shift @legend;
-	next;
-    }
-    /^(\d{4})-(\d{2})-(\d{2})/ or next;
-    my $year  = $1;
-    my $month = $2;
-    my $day   = $3;
-    
-    # ignore 29th Feb in leap years
-    next if ( $month == 2 && $day == 29 );
-
-    my $utime = timegm( 0, 0, 12, $day, $month-1, $year );   # ( $sec, $min, $hour, $mday, $mon, $year );
-
-    die( "legend missing" ) if scalar @legend == 0;
-    my @tokens = split;
-
-    for ( my $i=1; $i < scalar @legend; $i++ ) {
-	my $tag = $legend[$i];
-	my $val = $tokens[$i];
-        
-        # skip missing values
-        next if $val eq "N/A";
-
-        # skip if value has already been read from an earlier file
-        next if defined $daily{$tag}{$utime};
-
-        $val *= $baseunit / $dispunit;
-	$daily{$tag}{$utime} = $val;
-        $filecount++;
-    }
+    print "$filecount data points.\n" if $lastfile;
+    print "\n";
 }
-print "$filecount\n" if $lastfile;
-print "\n";
 
 
 sub add_timeline       ( $$$ );
@@ -193,59 +215,39 @@ sub avg_timeline_years2( $$% );
 sub cmp_timeline       ( $$ );
 sub avg_timeline       ( $$ );
 sub cum_timeline       ( $ );
-sub emit_timeline      ( $$$$$$ );
+sub emit_timeline      ( $$$$$ );
 
-print "add_timeline: total += LU\n";
-add_timeline( $daily{'total'}, $daily{'LU_CSV'}, 1. );
-avg_timeline_years2( 'total', 'totalavg', ( 2009 => 1, 2010 => 1 ) );
-$daily{'delta'} = clone( $daily{'total'} );
-print "add_timeline: delta -= totalavg\n";
-add_timeline( $daily{'delta'}, $daily{'totalavg'}, -1. );
+if ( $filecount > 0 ) {
+    print "add_timeline: total += LU\n";
+    add_timeline( $daily{'total'}, $daily{'LU_CSV'}, 1. );
+}
+#avg_timeline_years2( 'total', 'totalavg', ( 2009 => 1, 2010 => 1 ) );
+#$daily{'delta'} = clone( $daily{'total'} );
+#print "add_timeline: delta -= totalavg\n";
+#add_timeline( $daily{'delta'}, $daily{'totalavg'}, -1. );
 
 foreach my $tag ( sort keys %daily ) {
     next if $tag =~ /_$/;
     cmp_timeline( $tag, "${tag}_" );
 }
 
-my $color=1;
-for ( my $year = $year_first; $year <= $year_last; $year++ )
-{
+for ( my $year = $year_first; $year <= $year_last; $year++ ) {
     next if $year != $output_year && $output_year != 1;
 
     my $file;
-    open( $file, ">", "fdata$year.js" ) or die $!;  # data for flot
-    print "Writing to file: fdata$year.js\n";
+    open( $file, ">", "$output_stem$year.js" ) or die $!;  # data for flot
+    print "Writing to file: $output_stem$year.js\n";
     foreach my $tag ( sort keys %daily ) {
-	emit_timeline( $daily{$tag}, $year, $tag, '1', $color, $file );
+	emit_timeline( $daily{$tag}, $year, $tag, '1', $file );
 	my %tl = avg_timeline( $daily{$tag}, 7 );
-	emit_timeline( \%tl, $year, $tag, '7', $color, $file );
+	emit_timeline( \%tl, $year, $tag, '7', $file );
 	%tl = avg_timeline( $daily{$tag}, 30 );
-	emit_timeline( \%tl, $year, $tag, '30', $color, $file );
+	emit_timeline( \%tl, $year, $tag, '30', $file );
 	%tl = cum_timeline( $daily{$tag} );
-	emit_timeline( \%tl, $year, $tag, 'cum', $color, $file );
-	$color++;
+	emit_timeline( \%tl, $year, $tag, 'cum', $file );
     }
     close( $file );
 }
-
-#{
-#    my $year = 10000;
-#    my $file;
-#    open( $file, ">", "fdata$year.js" ) or die $!;  # data for flot
-#    print "Writing to file: fdata$year.js\n";
-#    {
-#	my $tag = 'total';
-#	emit_timeline( $daily{$tag}, $year, $tag, '1', $color, $file );
-#	my %tl = avg_timeline( $daily{$tag}, 7 );
-#	emit_timeline( \%tl, $year, $tag, '7', $color, $file );
-#	%tl = avg_timeline( $daily{$tag}, 30 );
-#	emit_timeline( \%tl, $year, $tag, '30', $color, $file );
-#	%tl = cum_timeline( $daily{$tag} );
-#	emit_timeline( \%tl, $year, $tag, 'cum', $color, $file );
-#	$color++;
-# #   }
-#    close( $file );
-#}
 
 exit 0;
 
@@ -398,20 +400,28 @@ sub cum_timeline( $ ) {
 }
 
 # write timeline to javascript file
-sub emit_timeline( $$$$$$ ) {
+sub emit_timeline( $$$$$ ) {
     my $tl    = shift;   # reference to timeline
     my $y     = shift;   # year
     my $tag   = shift;   # id-tag, eg. "FR" or "total"
     my $agg   = shift;   # aggregation, eg. 1, 7, 30 or "cum"
-    my $color = shift;
     my $file  = shift;
 
 #    print "Emitting $y $tag $agg (full size: ", scalar keys %{ $tl }, ", ";
 
-    print $file "var timeline_${y}_${tag}_${agg} = {\n";
+    my $data_source = $content;
+    if ( $tag =~ /(.*)_CSV$/ ) {
+	return unless $output_csv;
+	$data_source = 'entsoe.eu';
+	$tag = $1;
+    }
+
+    print $file "alldata.push( {\n";
     # disable label to disable legend
-    print $file "\tlabel: \"$y\",\n";
-    print $file "\tcolor: $color,\n";
+    print $file "\tsource:       \"$data_source\",\n";
+    print $file "\tyear:         \"$y\",\n";
+    print $file "\tcountry:      \"$tag\",\n";
+    print $file "\taggregation:  \"$agg\",\n";
     print $file "\tdata: [\n";
 
     my $linecount = 0;
@@ -434,43 +444,7 @@ sub emit_timeline( $$$$$$ ) {
 	$linecount++;
     }
     print $file "\t]\n";
-    print $file "}\n";
-
-    print $file "{\n";
-    print $file "\tvar ydiv = \$(\"#yeardiv\")\n";
-    print $file "\tif ( ydiv.find('#$y').length == 0 ) {\n";
-    print $file "\t\tydiv.append( '<input type=\"checkbox\" id=\"$y\" checked=\"checked\" name=\"$y\" /> '+\n";
-    print $file "\t\t\t'<label for=\"$y\">$y</label><br />' )\n";
-    print $file "\t}\n";
-    print $file "}\n";
-
-
-    # translation of country codes
-    my %countries = ( 'AT' => 'Österreich',
-		      'CH' => 'Schweiz',
-		      'CZ' => 'Tschechien',
-		      'DK' => 'Dänemark',
-		      'FR' => 'Frankreich',
-		      'LU' => 'Luxemburg',
-		      'NL' => 'Niederlande',
-		      'PL' => 'Polen',
-		      'SE' => 'Schweden',
-	);
-
-    my $translation;
-    if ( exists $countries{$tag} ) {
-	$translation = $countries{$tag};
-    } else {
-	$translation = $tag;
-    }
-
-    print $file "{\n";
-    print $file "\tvar cdiv = \$(\"#countrydiv\")\n";
-    print $file "\tif ( cdiv.find('#$tag').length == 0 ) {\n";
-    print $file "\t\tcdiv.append( '<input type=\"checkbox\" id=\"$tag\" name=\"$tag\" /> '+\n";  # checked=\"checked\" 
-    print $file "\t\t\t'<label for=\"$tag\">$translation</label><br />' )\n";
-    print $file "\t}\n";
-    print $file "}\n";
+    print $file "} )\n";
 
 #    print "lines written: $linecount)\n";
 }

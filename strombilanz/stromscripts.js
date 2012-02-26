@@ -6,7 +6,9 @@ choiceContainer.append(
 '</div>' +
 '<div class="butgroup" id="countrydiv" style="float:left">Länder:<br />' +
 '</div>' +
-'<div class="butgroup" id="aggregationdiv" style="float:left">Art der Darstellung:<br />' +
+'<div class="butgroup" id="sourcediv" style="float:left">Quelle:<br />' +
+'</div>' +
+'<div class="butgroup" id="aggregationdiv" style="float:left">Aggregation:<br />' +
 '<input id="1" name="aggregation" type="radio" value="1" /> <label for="1">tagesgenau</label><br />' +
 '<input id="7" name="aggregation" type="radio" value="7" /> <label for="7">7-Tage-Durchschnitt</label><br />' +
 '<input id="30" name="aggregation" type="radio" checked="checked" value="30" /> <label for="30">30-Tage-Durchschnitt</label><br />' +
@@ -21,11 +23,70 @@ choiceContainer.append(
 
 choiceContainer.find("input").click( plotAccordingToChoices )
 
+function Log( msg ) {
+    console.log( msg )
+}
+
+var cdiv = $("#countrydiv")
+var sdiv = $("#sourcediv")
+var ydiv = $("#yeardiv")
+
 // Date of "Moratorium"
 var moradate = (new Date(2011, 3-1, 17)).getTime()
 
+var alldata = []
 var plot
 var last_aggregation = "none"
+
+
+function SetupInputs() {
+
+    var countries = {}
+    var sources   = {}
+    var years     = {}
+    for ( var i=0; i<alldata.length; i++ ) {
+	var c  = alldata[i].country
+	var y  = alldata[i].year
+	var s  = alldata[i].source
+	var sl = alldata[i].sourcelabel
+
+	// Log( "SetupInputs(): " + c + " (" + y + "): " + s + ", agg: " + alldata[i].aggregation )
+
+	countries[c] = c
+	sources  [s] = s
+	years    [y] = y
+    }
+
+/*
+    # translation of country codes
+    my %countries = ( 'AT' => 'Österreich',
+		      'CH' => 'Schweiz',
+		      'CZ' => 'Tschechien',
+		      'DK' => 'Dänemark',
+		      'FR' => 'Frankreich',
+		      'LU' => 'Luxemburg',
+		      'NL' => 'Niederlande',
+		      'PL' => 'Polen',
+		      'SE' => 'Schweden',
+	);
+*/
+
+
+    // TODO:  is this sorted already or do I need to sort manually?
+    for ( var country in countries ) {
+	cdiv.append( '<input type="checkbox" id="' + country + '" name="' + country + '" /> '+
+		     '<label for="' + country + '">' + country + '</label><br />' )
+    }
+    for ( var source in sources ) {
+	sdiv.append( '<input type="checkbox" id="' + source + '" checked="checked" name="' + source + '" /> '+
+		     '<label for="' + source + '">' + source + '</label><br />' )
+    }
+    for ( var year in years ) {
+	ydiv.append( '<input type="checkbox" id="' + year + '" name="' + year + '" /> '+
+		     '<label for="' + year + '">' + year + '</label><br />' )
+    }
+}
+
 
 // Triggered by panning and zooming.
 function UpdateLabel() {
@@ -91,7 +152,7 @@ function InitPlot( data, type ) {
     // This time plot for real.
     plot = $.plot( plotContainer, data, {
         grid:   { markings: marking },
-        legend: { noColumns: 2, position: "se", backgroundOpacity: .65 },
+        legend: { noColumns: 1, position: "se", backgroundOpacity: .65 },
         xaxis:  { zoomRange: [ week, year ], panRange: [ startdate, enddate ], mode: "time" },
         yaxis:  { min: ymin, max: ymax, zoomRange: [ deltay/10., deltay*1.2 ] },
         pan:    { interactive: true },
@@ -107,7 +168,6 @@ function InitPlot( data, type ) {
         plotAccordingToChoices()
     })
 
-
     // Register callbacks for panning and zooming.
     plotContainer.bind('plotpan', function (event, plot) {
         UpdateLabel()
@@ -119,7 +179,7 @@ function InitPlot( data, type ) {
 
 
 function plotAccordingToChoices() {
-    console.log( "plotAccordingToChoices() called." )
+    // Log( "plotAccordingToChoices() called." )
 
     var data = []
     
@@ -132,28 +192,59 @@ function plotAccordingToChoices() {
             aggregation = $(this).attr("value")
         }
     })
+    Log( "Aggregation choice: " + aggregation )
 
-    // use combination of country and year setting
-    var cdiv = $("#countrydiv")
-    var ydiv = $("#yeardiv")
-    var elem = cdiv.find( "input:checked" )
-    var col = 1
+    // find country, source and year settings
+    var elem
+    var countries = {}
+    elem = cdiv.find( "input:checked" )
     while ( elem.length != 0 ) {
 	var country = elem.attr( "id" )
-	console.log( "country: " + country )
-	ydiv.find( "input:checked" ).each( function () {
-            var year = $(this).attr("name")
-	    var name = "timeline_" + year + "_" + country + "_" + aggregation
-	    if ( typeof eval(name) !== "undefined" ) {
-		eval(name).color = col
-                data.push( eval(name) )
-		col++
-	    }
-	} )
+	countries[ country ] = 1
+	Log( "Country choice: " + country )
+	elem = elem.nextAll( "input:checked" )
+    }
+    var sources = {}
+    elem = sdiv.find( "input:checked" )
+    while ( elem.length != 0 ) {
+	var source = elem.attr( "id" )
+	sources[ source ] = 1
+	Log( "Source choice: " + source )
+	elem = elem.nextAll( "input:checked" )
+    }
+    var years = {}
+    elem = ydiv.find( "input:checked" )
+    while ( elem.length != 0 ) {
+	var year = elem.attr( "id" )
+	years[ year ] = 1
+	Log( "Year choice: " + year )
 	elem = elem.nextAll( "input:checked" )
     }
 
-    if ( aggregation == last_aggregation || data.length == 0 ) return
+    var col = 1
+    for ( var year in years ) {
+	for ( var country in countries ) {
+	    for ( var source in sources ) {
+		loop: for ( var i=0; i<alldata.length; i++ ) {
+		    var dset = alldata[i]
+		    if ( dset.country == country && dset.source == source && dset.year == year && dset.aggregation == aggregation ) {
+			dset.label = year + ": " + country + " (" + source + ")"
+			dset.color = col++
+			data.push( dset )
+			break loop  // avoid duplicate display in case of duplicate datasets
+//			Log( "matched: " + dset.country + " " + dset.source + " " + dset.year + " " + dset.aggregation )
+		    } else {
+//			Log( "unmatched: " + dset.country + " " + dset.source + " " + dset.year + " " + dset.aggregation )
+		    }
+		}
+	    }
+	}
+    }
+
+    Log( "Displaying " + data.length + " dataset(s)." )
+    if ( data.length == 0 ) {
+	return
+    }
 
     if ( aggregation == "cum" || last_aggregation == "cum" || last_aggregation == "none" ) {
         InitPlot( data, aggregation )
@@ -191,17 +282,22 @@ function loadScript(url, callback){
     document.getElementsByTagName("head")[0].appendChild(script);
 }
 
-var count=0
-var path=""
+var pending = 0
+var total   = 0
 function cb() {
-    count++
-    if ( count == 7 ) plotAccordingToChoices()
+    pending--
+    if ( !pending ) {
+	Log( total + " file(s) loaded." )
+	SetupInputs()
+	plotAccordingToChoices()
+    }
 }
 
-loadScript( path+"fdata2005.js", cb )
-loadScript( path+"fdata2006.js", cb )
-loadScript( path+"fdata2007.js", cb )
-loadScript( path+"fdata2008.js", cb )
-loadScript( path+"fdata2009.js", cb )
-loadScript( path+"fdata2010.js", cb )
-loadScript( path+"fdata2011.js", cb )
+var path = "../"
+for ( var y = 2008; y <= 2012; y++ ) {
+    pending += 3
+    total += 3
+    loadScript( path+"net"+y+".js", cb )
+    loadScript( path+"flow"+y+".js", cb )
+    loadScript( path+"sched"+y+".js", cb )
+}
