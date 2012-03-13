@@ -1,31 +1,36 @@
+var test      = 0  // for local testing
+var onlytotal = 1  // only show total sums since display of individual countries is still experimental
+var logging   = 0  // must be off to prevent breakage of browsers without FireBug!!!
+
+
 var choiceContainer = $("#choices");
 var plotContainer   = $("#flotdiv");
 
-choiceContainer.append(
-'<div class="butgroup" id="yeardiv" style="float:left">Jahre:<br />' +
-'</div>' +
-'<div class="butgroup" id="countrydiv" style="float:left">Länder:<br />' +
-'</div>' +
-'<div class="butgroup" id="sourcediv" style="float:left">Quelle:<br />' +
-'</div>' +
-'<div class="butgroup" id="aggregationdiv" style="float:left">Aggregation:<br />' +
-'<input id="1" name="aggregation" type="radio" value="1" /> <label for="1">tagesgenau</label><br />' +
-'<input id="7" name="aggregation" type="radio" value="7" /> <label for="7">7-Tage-Durchschnitt</label><br />' +
-'<input id="30" name="aggregation" type="radio" checked="checked" value="30" /> <label for="30">30-Tage-Durchschnitt</label><br />' +
-'<input id="cum" name="aggregation" type="radio" value="cum" /> <label for="cum">kumulativ</label></br />' +
-'</div>' +
-'<div class="butgroup">Navigation:<br />' +
-'<span id="smallgray">Darstellung vergrößern oder verkleinern: Mausrad<br />' +
-'sichtbaren Ausschnitt verschieben: klicken und ziehen</span>' +
-'</div>' +
-'<div style="clear:both"></div>'
-)
-
-choiceContainer.find("input").click( plotAccordingToChoices )
-
 function Log( msg ) {
-    console.log( msg )
+    if ( logging ) {
+	console.log( msg )
+    }
 }
+
+choiceContainer.append(
+    '' +
+	'<div class="butgroup" id="yeardiv" style="float:left">Jahr:<br /></div>' +
+	'<div class="butgroup" id="aggregationdiv" style="float:left">Aggregation:<br />' +
+	'  <input id="1" name="aggregation" type="radio" value="1" /> <label for="1">tagesgenau</label><br />' +
+	'  <input id="7" name="aggregation" type="radio" value="7" /> <label for="7">7-Tage-Durchschnitt</label><br />' +
+	'  <input id="30" name="aggregation" type="radio" checked="checked" value="30" /> <label for="30">30-Tage-Durchschnitt</label><br />' +
+	'  <input id="cum" name="aggregation" type="radio" value="cum" /> <label for="cum">kumulativ</label></br />' +
+	'  <br />' +     // quick hack to fix display glitch
+	'</div>' +
+	( onlytotal ? '' : '<div class="butgroup" id="countrydiv" style="float:left">Länder:<br /></div>' ) +
+	'<div class="butgroup" id="sourcediv" style="float:left">Quelle:<br /></div>' +
+	'<div class="butgroup">Navigation:<br />' +
+	'<span id="smallgray">Darstellung vergrößern oder verkleinern: Mausrad<br />' +
+	'sichtbaren Ausschnitt verschieben: klicken und ziehen</span>' +
+	'</div>' +
+	'<div style="clear:both"></div>'
+)
+Log( "Appended controls to choiceContainer." )
 
 var cdiv = $("#countrydiv")
 var sdiv = $("#sourcediv")
@@ -48,7 +53,6 @@ function SetupInputs() {
 	var c  = alldata[i].country
 	var y  = alldata[i].year
 	var s  = alldata[i].source
-	var sl = alldata[i].sourcelabel
 
 	// Log( "SetupInputs(): " + c + " (" + y + "): " + s + ", agg: " + alldata[i].aggregation )
 
@@ -73,18 +77,42 @@ function SetupInputs() {
 
 
     // TODO:  is this sorted already or do I need to sort manually?
-    for ( var country in countries ) {
-	cdiv.append( '<input type="checkbox" id="' + country + '" name="' + country + '" /> '+
-		     '<label for="' + country + '">' + country + '</label><br />' )
+    if ( ! onlytotal ) {
+	for ( var country in countries ) {
+	    cdiv.append( '<input type="checkbox" id="' + country + '" name="' + country + '" /> '+
+			 '<label for="' + country + '">' + country + '</label><br />' )
+	}
     }
     for ( var source in sources ) {
-	sdiv.append( '<input type="checkbox" id="' + source + '" checked="checked" name="' + source + '" /> '+
-		     '<label for="' + source + '">' + source + '</label><br />' )
+	var label   = source
+	var checked = ""
+	if ( source == "flow" ) {
+	    label   = "entsoe.net: 'physical flow'"
+	    checked = ' checked="checked"'
+	} else if ( source == "schedules" ) {
+	    label = "entsoe.net: 'final schedules'"
+	}
+	sdiv.append( '<input type="checkbox" id="' + source + '"' + checked + ' name="' + source + '" /> '+
+		     '<label for="' + source + '">' + label + '</label><br />' )
+	Log( 'Adding source: ' + label )
+
     }
+
+    // quick hack to fix display glitch
+    sdiv.append( '<br />' )
+    sdiv.append( '<br />' )
+
     for ( var year in years ) {
-	ydiv.append( '<input type="checkbox" id="' + year + '" name="' + year + '" /> '+
+	var checked = ""
+	if ( year >= 2010 ) {
+	    checked = ' checked="checked"'
+	}
+	ydiv.append( '<input type="checkbox" id="' + year + '"' + checked + ' name="' + year + '" /> '+
 		     '<label for="' + year + '">' + year + '</label><br />' )
+	Log( 'Adding year: ' + year )
     }
+
+    choiceContainer.find("input").click( plotAccordingToChoices )
 }
 
 
@@ -204,6 +232,9 @@ function plotAccordingToChoices() {
 	Log( "Country choice: " + country )
 	elem = elem.nextAll( "input:checked" )
     }
+    if ( onlytotal ) {
+	countries[ 'total' ] = 1;
+    }
     var sources = {}
     elem = sdiv.find( "input:checked" )
     while ( elem.length != 0 ) {
@@ -228,7 +259,11 @@ function plotAccordingToChoices() {
 		loop: for ( var i=0; i<alldata.length; i++ ) {
 		    var dset = alldata[i]
 		    if ( dset.country == country && dset.source == source && dset.year == year && dset.aggregation == aggregation ) {
-			dset.label = year + ": " + country + " (" + source + ")"
+			var clabel = country
+			if ( country == "total" ) {
+			    clabel = "Nettoexport"
+			}
+			dset.label = year + ": " + clabel + " (" + source + ")"
 			dset.color = col++
 			data.push( dset )
 			break loop  // avoid duplicate display in case of duplicate datasets
@@ -293,7 +328,10 @@ function cb() {
     }
 }
 
-var path = "../"
+var path = "/stuff/strombilanz/"
+if ( test ) {
+    path = "../"
+}
 for ( var y = 2008; y <= 2012; y++ ) {
     pending += 3
     total += 3
