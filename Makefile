@@ -35,7 +35,7 @@ Statistics_2004.csv: Statistics.csv
 
 $(xml2): %.xml2: %.xml
 	@mkdir -p $(data)
-	@if [ -f $(data)/$< ] && diff -q $< $(data)/$< > /dev/zero; then \
+	@if [ -f $@ ] && [ -f $(data)/$< ] && diff -q $< $(data)/$< > /dev/zero; then \
 		echo "$< unchanged"; \
 	else \
 		echo "$< changed"; \
