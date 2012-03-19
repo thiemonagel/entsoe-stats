@@ -1,0 +1,54 @@
+Cross-Border Schedules
+======================
+
+"Day Ahead Crossborder Schedules"
+
+Day Ahead schedules are scheduled energy exchanges between control blocks for
+the next day.  The day starts at midnight and finishes next midnight. The
+values are in MW for average flow over the hour. Thoses values are available
+for the next day after 22h00 UTC.
+
+FAQ:  D-1 Cross-Border Commecial Schedules are previsions for the next full
+day (available during evening).
+
+FAQ:  Schedules are available the day before, as a prevision, and physical
+flows are "real-time" data.
+
+
+Cross-Border Physical Flows
+===========================
+
+"Physical Crossborder Flow"
+
+FAQ:  Cross-Border Physical flows are the "live" data, provided hour after
+hour during the day.
+
+
+Final Cross-Border Schedules
+============================
+
+Final schedules are the refined Physical Flows.
+
+FAQ:  Final Cross-Border Schedules are controlled schedules data provided with
+one week delay.
+
+
+Planned schedule evolution
+==========================
+
+The Planned Schedule Evolution provides the evolution of the day ahead
+schedule after each nomination gate.  During the day and after the daily
+allocation process, capacity is nominated by market players at different
+nomination gate closures, this is known as nomination gate. However, the
+allocation process can be performed continuously. Market rules fix the number
+of nomination gates available to market players for a given interconnection.
+
+
+Comparison Physical Flow vs Final Schedules
+===========================================
+
+The ETSOVista platform presents cross border physical flows and final
+schedules based on country views. In certain countries there are profiles for
+a regional NTC view with values involving several borders. Considering this
+approach, the ETSOVista platform includes profiles to compare Physical Flows
+vs. Final Schedules.
