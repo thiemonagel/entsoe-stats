@@ -14,11 +14,39 @@ default: net2012.js net2011.js net2010.js net2009.js net2008.js net2007.js net20
 net%.js: post-process.pl Statistics_2004.csv
 	./post-process.pl --csvfile Statistics_2004.csv --outcsv --outstem net
 
-flow%.js: post-process.pl Statistics_2004.csv $(flow_out)
-	./post-process.pl --content flow      --csvfile Statistics_2004.csv --outstem flow  --outyear $* ETSOVista-PhysicalFlow-DE-$*-1.out   ETSOVista-PhysicalFlow-DE-$$(($*-1))-1.out
 
-sched%.js: post-process.pl Statistics_2004.csv $(sched_out)
-	./post-process.pl --content schedules --csvfile Statistics_2004.csv --outstem sched --outyear $* ETSOVista-FinalSchedules-DE-$*-1.out ETSOVista-FinalSchedules-DE-$$(($*-1))-1.out
+flow2012.js: ETSOVista-PhysicalFlow-DE-2011-1.out ETSOVista-PhysicalFlow-DE-2012-1.out post-process.pl Statistics_2004.csv 
+	./post-process.pl --content flow --csvfile Statistics_2004.csv --outstem flow --outyear 2012 ETSOVista-PhysicalFlow-DE-2011-1.out ETSOVista-PhysicalFlow-DE-2012-1.out
+
+flow2011.js: ETSOVista-PhysicalFlow-DE-2010-1.out ETSOVista-PhysicalFlow-DE-2011-1.out post-process.pl Statistics_2004.csv 
+	./post-process.pl --content flow --csvfile Statistics_2004.csv --outstem flow --outyear 2011 ETSOVista-PhysicalFlow-DE-2010-1.out ETSOVista-PhysicalFlow-DE-2011-1.out
+
+flow2010.js: ETSOVista-PhysicalFlow-DE-2009-1.out ETSOVista-PhysicalFlow-DE-2010-1.out post-process.pl Statistics_2004.csv 
+	./post-process.pl --content flow --csvfile Statistics_2004.csv --outstem flow --outyear 2010 ETSOVista-PhysicalFlow-DE-2009-1.out ETSOVista-PhysicalFlow-DE-2010-1.out
+
+flow2009.js: ETSOVista-PhysicalFlow-DE-2008-1.out ETSOVista-PhysicalFlow-DE-2009-1.out post-process.pl Statistics_2004.csv 
+	./post-process.pl --content flow --csvfile Statistics_2004.csv --outstem flow --outyear 2009 ETSOVista-PhysicalFlow-DE-2008-1.out ETSOVista-PhysicalFlow-DE-2009-1.out
+
+flow2008.js: ETSOVista-PhysicalFlow-DE-2008-1.out post-process.pl Statistics_2004.csv 
+	./post-process.pl --content flow --csvfile Statistics_2004.csv --outstem flow --outyear 2008 ETSOVista-PhysicalFlow-DE-2008-1.out
+
+
+
+sched2012.js: ETSOVista-FinalSchedules-DE-2011-1.out ETSOVista-FinalSchedules-DE-2012-1.out post-process.pl Statistics_2004.csv 
+	./post-process.pl --content schedules --csvfile Statistics_2004.csv --outstem sched --outyear 2012 ETSOVista-FinalSchedules-DE-2011-1.out ETSOVista-FinalSchedules-DE-2012-1.out
+
+sched2011.js: ETSOVista-FinalSchedules-DE-2010-1.out ETSOVista-FinalSchedules-DE-2011-1.out post-process.pl Statistics_2004.csv 
+	./post-process.pl --content schedules --csvfile Statistics_2004.csv --outstem sched --outyear 2011 ETSOVista-FinalSchedules-DE-2010-1.out ETSOVista-FinalSchedules-DE-2011-1.out
+
+sched2010.js: ETSOVista-FinalSchedules-DE-2009-1.out ETSOVista-FinalSchedules-DE-2010-1.out post-process.pl Statistics_2004.csv 
+	./post-process.pl --content schedules --csvfile Statistics_2004.csv --outstem sched --outyear 2010 ETSOVista-FinalSchedules-DE-2009-1.out ETSOVista-FinalSchedules-DE-2010-1.out
+
+sched2009.js: ETSOVista-FinalSchedules-DE-2008-1.out ETSOVista-FinalSchedules-DE-2009-1.out post-process.pl Statistics_2004.csv 
+	./post-process.pl --content schedules --csvfile Statistics_2004.csv --outstem sched --outyear 2009 ETSOVista-FinalSchedules-DE-2008-1.out ETSOVista-FinalSchedules-DE-2009-1.out
+
+sched2008.js: ETSOVista-FinalSchedules-DE-2008-1.out post-process.pl Statistics_2004.csv 
+	./post-process.pl --content schedules --csvfile Statistics_2004.csv --outstem sched --outyear 2008 ETSOVista-FinalSchedules-DE-2008-1.out
+
 
 
 Statistics_2004.csv: Statistics.csv
