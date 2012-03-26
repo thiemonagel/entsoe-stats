@@ -1,3 +1,8 @@
+#
+# Produce plots for years 2008-2012.
+#
+
+
 SHELL=/bin/bash
 data=../data2
 date=$(shell date +%Y-%m-%d)
@@ -9,7 +14,7 @@ xml2=$(patsubst %.xml, %.xml2, $(flow_xml) $(sched_xml))
 
 
 .PHONY: default
-default: net2012.js net2011.js net2010.js net2009.js net2008.js net2007.js net2006.js flow2012.js flow2011.js flow2010.js flow2009.js flow2008.js flow2007.js flow2006.js sched2012.js sched2011.js sched2010.js sched2009.js sched2008.js sched2007.js sched2006.js 
+default: net2012.js net2011.js net2010.js net2009.js net2008.js net2007.js net2006.js flow2012.js flow2011.js flow2010.js flow2009.js flow2008.js sched2012.js sched2011.js sched2010.js sched2009.js sched2008.js 
 
 net%.js: post-process.pl Statistics_2004.csv
 	./post-process.pl --csvfile Statistics_2004.csv --outcsv --outstem net
@@ -27,8 +32,8 @@ flow2010.js: ETSOVista-PhysicalFlow-DE-2009-1.out ETSOVista-PhysicalFlow-DE-2010
 flow2009.js: ETSOVista-PhysicalFlow-DE-2008-1.out ETSOVista-PhysicalFlow-DE-2009-1.out post-process.pl Statistics_2004.csv 
 	./post-process.pl --content flow --csvfile Statistics_2004.csv --outstem flow --outyear 2009 ETSOVista-PhysicalFlow-DE-2008-1.out ETSOVista-PhysicalFlow-DE-2009-1.out
 
-flow2008.js: ETSOVista-PhysicalFlow-DE-2008-1.out post-process.pl Statistics_2004.csv 
-	./post-process.pl --content flow --csvfile Statistics_2004.csv --outstem flow --outyear 2008 ETSOVista-PhysicalFlow-DE-2008-1.out
+flow2008.js: ETSOVista-PhysicalFlow-DE-2007-1.out ETSOVista-PhysicalFlow-DE-2008-1.out post-process.pl Statistics_2004.csv 
+	./post-process.pl --content flow --csvfile Statistics_2004.csv --outstem flow --outyear 2008 ETSOVista-PhysicalFlow-DE-2007-1.out ETSOVista-PhysicalFlow-DE-2008-1.out
 
 
 
@@ -44,8 +49,8 @@ sched2010.js: ETSOVista-FinalSchedules-DE-2009-1.out ETSOVista-FinalSchedules-DE
 sched2009.js: ETSOVista-FinalSchedules-DE-2008-1.out ETSOVista-FinalSchedules-DE-2009-1.out post-process.pl Statistics_2004.csv 
 	./post-process.pl --content schedules --csvfile Statistics_2004.csv --outstem sched --outyear 2009 ETSOVista-FinalSchedules-DE-2008-1.out ETSOVista-FinalSchedules-DE-2009-1.out
 
-sched2008.js: ETSOVista-FinalSchedules-DE-2008-1.out post-process.pl Statistics_2004.csv 
-	./post-process.pl --content schedules --csvfile Statistics_2004.csv --outstem sched --outyear 2008 ETSOVista-FinalSchedules-DE-2008-1.out
+sched2008.js: ETSOVista-FinalSchedules-DE-2007-1.out ETSOVista-FinalSchedules-DE-2008-1.out post-process.pl Statistics_2004.csv 
+	./post-process.pl --content schedules --csvfile Statistics_2004.csv --outstem sched --outyear 2008 ETSOVista-FinalSchedules-DE-2007-1.out ETSOVista-FinalSchedules-DE-2008-1.out
 
 
 
@@ -60,6 +65,7 @@ Statistics_2004.csv: Statistics.csv
 		bzip2 -vf $(data)/$<-$(date); \
 		cp -af $< $@; \
 	fi
+
 
 $(xml2): %.xml2: %.xml
 	@mkdir -p $(data)
