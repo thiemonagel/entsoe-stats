@@ -231,22 +231,32 @@ foreach my $tag ( sort keys %daily ) {
     cmp_timeline( $tag, "${tag}_" );
 }
 
+# write data for flot
 for ( my $year = $year_first; $year <= $year_last; $year++ ) {
     next if $year != $output_year && $output_year != 1;
 
-    my $file;
-    open( $file, ">", "$output_stem$year.js" ) or die $!;  # data for flot
-    print "Writing to file: $output_stem$year.js\n";
+    my $file;      # only "total" summary
+    my $filefull;  # full data
+    open( $file,     ">", "$output_stem${year}.js"     ) or die $!;
+    open( $filefull, ">", "$output_stem${year}full.js" ) or die $!;
+    print "Writing to files: $output_stem${year}.js and $output_stem${year}full.js\n";
     foreach my $tag ( sort keys %daily ) {
-	emit_timeline( $daily{$tag}, $year, $tag, '1', $file );
-	my %tl = avg_timeline( $daily{$tag}, 7 );
-	emit_timeline( \%tl, $year, $tag, '7', $file );
-	%tl = avg_timeline( $daily{$tag}, 30 );
-	emit_timeline( \%tl, $year, $tag, '30', $file );
-	%tl = cum_timeline( $daily{$tag} );
-	emit_timeline( \%tl, $year, $tag, 'cum', $file );
+        print "tag: $tag\n";
+        foreach my $f ( ( $filefull, $file ) ) {
+            emit_timeline( $daily{$tag}, $year, $tag, '1', $f );
+            my %tl = avg_timeline( $daily{$tag}, 7 );
+            emit_timeline( \%tl, $year, $tag, '7', $f );
+            %tl = avg_timeline( $daily{$tag}, 30 );
+            emit_timeline( \%tl, $year, $tag, '30', $f );
+            %tl = cum_timeline( $daily{$tag} );
+            emit_timeline( \%tl, $year, $tag, 'cum', $f );
+
+            # skip everything except total sum for second file
+            last if $tag !~ /^total/;
+        }
     }
-    close( $file );
+    close( $file     );
+    close( $filefull );
 }
 
 exit 0;

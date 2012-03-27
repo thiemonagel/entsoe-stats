@@ -14,19 +14,18 @@ function Log( msg ) {
 
 choiceContainer.append(
     '' +
-	'<div class="butgroup" id="yeardiv" style="float:left">Jahr:<br /></div>' +
-	'<div class="butgroup" id="aggregationdiv" style="float:left">Aggregation:<br />' +
+	'<div class="butgroup" id="yeardiv" style="width:15%">Jahr:<br /></div>' +
+	'<div class="butgroup" id="aggregationdiv">Aggregation:<br />' +
 	'  <input id="1" name="aggregation" type="radio" value="1" /> <label for="1">tagesgenau</label><br />' +
 	'  <input id="7" name="aggregation" type="radio" value="7" /> <label for="7">7-Tage-Durchschnitt</label><br />' +
 	'  <input id="30" name="aggregation" type="radio" checked="checked" value="30" /> <label for="30">30-Tage-Durchschnitt</label><br />' +
 	'  <input id="cum" name="aggregation" type="radio" value="cum" /> <label for="cum">kumulativ</label></br />' +
-	'  <br />' +     // quick hack to fix display glitch
 	'</div>' +
 	( onlytotal ? '' : '<div class="butgroup" id="countrydiv" style="float:left">Länder:<br /></div>' ) +
-	'<div class="butgroup" id="sourcediv" style="float:left">Quelle:<br /></div>' +
-	'<div class="butgroup">Navigation:<br />' +
-	'<span id="smallgray">Darstellung vergrößern oder verkleinern: Mausrad<br />' +
-	'sichtbaren Ausschnitt verschieben: klicken und ziehen</span>' +
+	'<div class="butgroup" id="sourcediv" style="width:30%">Quelle:<br /></div>' +
+	'<div class="butgroup" style="width:30%">Navigation:<br />' +
+	'  <span id="smallgray">Darstellung vergrößern oder verkleinern: Mausrad<br />' +
+	'  sichtbaren Ausschnitt verschieben: klicken und ziehen</span>' +
 	'</div>' +
 	'<div style="clear:both"></div>'
 )
@@ -47,8 +46,8 @@ var last_aggregation = "none"
 function SetupInputs() {
 
     var countries = {}
-    var sources   = {}
-    var years     = {}
+    var sources   = new Array()
+    var years     = new Array()
     for ( var i=0; i<alldata.length; i++ ) {
 	var c  = alldata[i].country
 	var y  = alldata[i].year
@@ -57,9 +56,15 @@ function SetupInputs() {
 	// Log( "SetupInputs(): " + c + " (" + y + "): " + s + ", agg: " + alldata[i].aggregation )
 
 	countries[c] = c
-	sources  [s] = s
-	years    [y] = y
+        
+        if ( sources.indexOf(s) < 0 )
+            sources.push(s)
+
+        if ( years.indexOf(y) < 0 )
+            years.push(y)
     }
+    sources.sort()
+    years.sort()
 
 /*
     # translation of country codes
@@ -76,14 +81,15 @@ function SetupInputs() {
 */
 
 
-    // TODO:  is this sorted already or do I need to sort manually?
+    // TODO:  needs to be sorted manually
     if ( ! onlytotal ) {
 	for ( var country in countries ) {
 	    cdiv.append( '<input type="checkbox" id="' + country + '" name="' + country + '" /> '+
 			 '<label for="' + country + '">' + country + '</label><br />' )
 	}
     }
-    for ( var source in sources ) {
+    for ( var i=0; i<sources.length; i++ ) {
+        var source  = sources[i]
 	var label   = source
 	var checked = ""
 	if ( source == "flow" ) {
@@ -98,11 +104,8 @@ function SetupInputs() {
 
     }
 
-    // quick hack to fix display glitch
-    sdiv.append( '<br />' )
-    sdiv.append( '<br />' )
-
-    for ( var year in years ) {
+    for ( var i=0; i<years.length; i++ ) {
+        var year = years[i]
 	var checked = ""
 	if ( year >= 2010 ) {
 	    checked = ' checked="checked"'
@@ -335,7 +338,7 @@ if ( test ) {
 for ( var y = 2008; y <= 2012; y++ ) {
     pending += 3
     total += 3
-    loadScript( path+"net"+y+".js", cb )
+    loadScript( path+"eu"+y+".js", cb )
     loadScript( path+"flow"+y+".js", cb )
     loadScript( path+"sched"+y+".js", cb )
 }

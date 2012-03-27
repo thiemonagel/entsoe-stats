@@ -14,10 +14,10 @@ xml2=$(patsubst %.xml, %.xml2, $(flow_xml) $(sched_xml))
 
 
 .PHONY: default
-default: net2012.js net2011.js net2010.js net2009.js net2008.js net2007.js net2006.js flow2012.js flow2011.js flow2010.js flow2009.js flow2008.js sched2012.js sched2011.js sched2010.js sched2009.js sched2008.js 
+default: eu2012.js eu2011.js eu2010.js eu2009.js eu2008.js eu2007.js eu2006.js flow2012.js flow2011.js flow2010.js flow2009.js flow2008.js sched2012.js sched2011.js sched2010.js sched2009.js sched2008.js 
 
-net%.js: post-process.pl Statistics_2004.csv
-	./post-process.pl --csvfile Statistics_2004.csv --outcsv --outstem net
+eu%.js: post-process.pl Statistics_2004.csv
+	./post-process.pl --csvfile Statistics_2004.csv --outcsv --outstem eu
 
 
 flow2012.js: ETSOVista-PhysicalFlow-DE-2011-1.out ETSOVista-PhysicalFlow-DE-2012-1.out post-process.pl Statistics_2004.csv 
@@ -69,7 +69,7 @@ Statistics_2004.csv: Statistics.csv
 
 $(xml2): %.xml2: %.xml
 	@mkdir -p $(data)
-	@if [ -f $@ ] && [ -f $(data)/$< ] && diff -q $< $(data)/$< > /dev/zero; then \
+	@if [ -f $@ ] && [ -f $(data)/$< ] && diff -q $< $@ && diff -q $< $(data)/$< > /dev/zero; then \
 		echo "$< unchanged"; \
 	else \
 		echo "$< changed"; \
