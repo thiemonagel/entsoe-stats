@@ -7,41 +7,164 @@ function Log( msg ) {
     }
 }
 
-var choiceContainer = $("#choices");
-var plotContainer   = $("#flotdiv");
 
-choiceContainer.append(
-    '' +
-	'<div class="butgroup" id="yeardiv" style="width:15%">Jahr:<br /></div>' +
-	'<div class="butgroup" id="aggregationdiv">Aggregation:<br />' +
-	'  <input id="1" name="aggregation" type="radio" value="1" /> <label for="1">tagesgenau</label><br />' +
-	'  <input id="7" name="aggregation" type="radio" value="7" /> <label for="7">7-Tage-Durchschnitt</label><br />' +
-	'  <input id="30" name="aggregation" type="radio" checked="checked" value="30" /> <label for="30">30-Tage-Durchschnitt</label><br />' +
-	'  <input id="cum" name="aggregation" type="radio" value="cum" /> <label for="cum">kumulativ</label></br />' +
-	'</div>' +
-	( onlytotal ? '' : '<div class="butgroup" id="countrydiv" style="float:left">Länder:<br /></div>' ) +
-	'<div class="butgroup" id="sourcediv" style="width:30%">Quelle:<br /></div>' +
-	'<div class="butgroup" style="width:30%">Navigation:<br />' +
-	'  <span id="smallgray">Darstellung vergrößern oder verkleinern: Mausrad<br />' +
-	'  sichtbaren Ausschnitt verschieben: klicken und ziehen</span>' +
-	'</div>' +
-	'<div style="clear:both"></div>'
-)
-Log( "Appended controls to choiceContainer." )
+//
+// Load code and data.
+//
+var allstarted = 0
+var pending    = 0
+var total      = 0
 
-var cdiv = $("#countrydiv")
-var sdiv = $("#sourcediv")
-var ydiv = $("#yeardiv")
+// adapted from http://www.nczonline.net/blog/2009/07/28/the-best-way-to-load-external-javascript/
+// url:      filename to be loaded
+// callback: function to be called on load
+// cbparam:  extra parameter to callback function
+function loadFile( url, callback, cbparam ) {
+    pending++
+    total++
+
+    if ( url.match( /.js$/ ) )
+        var type = 'js'
+    else
+        var type = 'css'
+
+    if ( type == 'js' ) {
+        var file = document.createElement( 'script' )
+        file.type = 'text/javascript'
+        file.src  = url
+    } else {
+        var file = document.createElement( 'link' )
+        file.rel   = 'stylesheet'
+        file.type  = 'text/css'
+        file.media = 'all'
+        file.href  = url
+    }
+
+    if ( file.readyState ) {  //IE
+        file.onreadystatechange = function(){
+            if ( file.readyState == "loaded" || file.readyState == "complete" ) {
+                file.onreadystatechange = null
+                callback( file, cbparam )
+            }
+        }
+    } else {  //Others
+        file.onload = function(){
+            callback( file, cbparam )
+        }
+    }
+
+    Log( 'Requesting ' + type + ': ' + url )
+    document.getElementsByTagName('head')[0].appendChild(file)
+}
+
+
+// determine full URL of stromscripts.js so that the directory
+// part can be used as a prefix to fetch the data files
+var prefix
+var scripts = document.getElementsByTagName( 'script' )
+for ( var i = 0; i < scripts.length; i++ ) {
+  var s = scripts.item(i)
+  if ( s.src && s.src.match( /stromscripts\.js$/ ) )
+      prefix = s.src.match( /^.*\// )
+}
+Log( "Determined prefix: " + prefix )
+
+
+// callback function for sequential file loading
+function cbseq( file, arr ) {
+    Log( 'Seq received: ' + file.src )
+    pending--
+    if ( file.src.match( /jquery.min.js$/ ) && jQuery.browser.msie == true && jQuery.browser.version < 9 ) { 
+        Log( 'IE<9 detected.  Applying counter-measures.' )
+        arr.unshift( prefix + 'flot/excanvas.min.js' )
+    }
+    if ( arr.length > 0 )
+        loadFile( arr.shift(), cbseq, arr )
+    if ( allstarted && !pending ) {
+	Log( total + " file(s) loaded." )
+	Setup()
+	plotAccordingToChoices()
+    }
+}
+
+
+function cb( file ) {
+    Log( 'Received: ' + file.src )
+    pending--
+    if ( allstarted && !pending ) {
+	Log( total + " file(s) loaded." )
+	Setup()
+	plotAccordingToChoices()
+    }
+}
+
+
+// load css
+loadFile( prefix+'stromstyles.css', cb )
+
+
+// load flot js sequentially (to avoid parsing errors)
+var seq = new Array()
+var ai = 0
+seq[ai++] = prefix + 'flot/jquery.flot.min.js'
+seq[ai++] = prefix + 'flot/jquery.flot.resize.min.js'
+seq[ai++] = prefix + 'flot/jquery.flot.navigate.min.js'
+loadFile( prefix + 'flot/jquery.min.js', cbseq, seq )
+
+
+// load data files
+for ( var y = 2008; y <= 2012; y++ ) {
+    loadFile( prefix+'eu'+y+'.js', cb )
+    loadFile( prefix+'flow'+y+'.js', cb )
+    loadFile( prefix+'sched'+y+'.js', cb )
+}
+allstarted = 1
+
+
 
 // Date of "Moratorium"
 var moradate = (new Date(2011, 3-1, 17)).getTime()
 
 var alldata = []
 var plot
-var last_aggregation = "none"
+var last_aggregation = 'none'
 
 
-function SetupInputs() {
+var plotContainer
+var cdiv
+var sdiv
+var ydiv
+function Setup() {
+
+    //
+    // write some HTML
+    //
+    plotContainer       = $("#flotdiv")
+    var choiceContainer = $("#choicesdiv")
+    
+    choiceContainer.append(
+        '' +
+	    '<div class="butgroup" id="yeardiv" style="width:15%">Jahr:<br /></div>' +
+	    '<div class="butgroup" id="aggregationdiv">Aggregation:<br />' +
+	    '  <input id="1" name="aggregation" type="radio" value="1" /> <label for="1">tagesgenau</label><br />' +
+	    '  <input id="7" name="aggregation" type="radio" value="7" /> <label for="7">7-Tage-Durchschnitt</label><br />' +
+	    '  <input id="30" name="aggregation" type="radio" checked="checked" value="30" /> <label for="30">30-Tage-Durchschnitt</label><br />' +
+	    '  <input id="cum" name="aggregation" type="radio" value="cum" /> <label for="cum">kumulativ</label></br />' +
+	    '</div>' +
+	    ( onlytotal ? '' : '<div class="butgroup" id="countrydiv" style="float:left">Länder:<br /></div>' ) +
+	    '<div class="butgroup" id="sourcediv" style="width:30%">Quelle:<br /></div>' +
+	    '<div class="butgroup" style="width:30%">Navigation:<br />' +
+	    '  <span id="smallgray">Darstellung vergrößern oder verkleinern: Mausrad<br />' +
+	    '  sichtbaren Ausschnitt verschieben: klicken und ziehen</span>' +
+	    '</div>' +
+	    '<div style="clear:both"></div>'
+    )
+    Log( "Appended controls to choiceContainer." )
+
+
+    cdiv = $("#countrydiv")
+    sdiv = $("#sourcediv")
+    ydiv = $("#yeardiv")
 
     var countries = {}
     var sources   = new Array()
@@ -293,63 +416,3 @@ function plotAccordingToChoices() {
     UpdateLabel()
     last_aggregation = aggregation
 }
-
-
-// from http://www.nczonline.net/blog/2009/07/28/the-best-way-to-load-external-javascript/
-function loadScript(url, callback){
-
-    var script  = document.createElement("script")
-    script.type = "text/javascript"
-    script.src  = url
-
-    if ( script.readyState ) {  //IE
-        script.onreadystatechange = function(){
-            if ( script.readyState == "loaded" || script.readyState == "complete" ) {
-                script.onreadystatechange = null
-                callback( script )
-            }
-        }
-    } else {  //Others
-        script.onload = function(){
-            callback( script )
-        }
-    }
-
-    document.getElementsByTagName("head")[0].appendChild(script)
-}
-
-
-var allstarted = 0
-var pending    = 0
-var total      = 0
-function cb( file ) {
-//    Log( 'Loaded ' + file )
-    pending--
-    if ( allstarted && !pending ) {
-	Log( total + " file(s) loaded." )
-	SetupInputs()
-	plotAccordingToChoices()
-    }
-}
-
-
-// determine full URL of stromscripts.js so that the directory
-// part can be used as a prefix to fetch the data files
-var prefix
-var scripts = document.getElementsByTagName( "script" )
-for ( var i = 0; i < scripts.length; i++ ) {
-  var s = scripts.item(i)
-  if ( s.src && s.src.match( /stromscripts\.js$/ ) )
-      prefix = s.src.match( /^.*\// )
-}
-Log( "Determined prefix: " + prefix )
-
-// load data files
-for ( var y = 2008; y <= 2012; y++ ) {
-    pending += 3
-    total += 3
-    loadScript( prefix+'eu'+y+'.js', cb )
-    loadScript( prefix+'flow'+y+'.js', cb )
-    loadScript( prefix+'sched'+y+'.js', cb )
-}
-allstarted = 1

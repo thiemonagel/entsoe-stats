@@ -1,0 +1,23 @@
+
+#flotdiv table, #flotdiv tbody, #flotdiv tr, #flotdiv tr td { padding: 0px; margin: 0px; border: 0px; }
+#flotdiv table { width: auto; overflow: visible; }
+#flotdiv tr td { padding-left: 2px; padding-right: 2px; vertical-align: middle; }
+
+#choices div.butgroup { margin: 0; border: 0; padding: 0; }
+#choices div label, #smallgray { font-size: smaller; color: #999999; font-family: "Helvetica Neue",Arial,Helvetica,"Nimbus Sans L",sans-serif; }
+#choices div input { padding: 0px; margin: 0px; border: 0px; }
+
+/* avoid flickering when panning the plot */
+div.tickLabel { white-space: nowrap; }
+
+/* fix display of controls (by Andi) */
+.butgroup {
+    line-height: 15px !important;
+    width: 25%;
+    float: left;
+    padding: 0 0px 0 0 !important;
+}
+
+.butgroup label {
+    line-height: 20px !important;
+}
