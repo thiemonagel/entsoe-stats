@@ -1,16 +1,14 @@
-var test      = 0  // for local testing
 var onlytotal = 1  // only show total sums since display of individual countries is still experimental
-var logging   = 0  // must be off to prevent breakage of browsers without FireBug!!!
 
-
-var choiceContainer = $("#choices");
-var plotContainer   = $("#flotdiv");
 
 function Log( msg ) {
-    if ( logging ) {
+    if ( typeof console != 'undefined' ) {
 	console.log( msg )
     }
 }
+
+var choiceContainer = $("#choices");
+var plotContainer   = $("#flotdiv");
 
 choiceContainer.append(
     '' +
@@ -296,49 +294,62 @@ function plotAccordingToChoices() {
     last_aggregation = aggregation
 }
 
+
 // from http://www.nczonline.net/blog/2009/07/28/the-best-way-to-load-external-javascript/
 function loadScript(url, callback){
 
-    var script = document.createElement("script")
-    script.type = "text/javascript";
+    var script  = document.createElement("script")
+    script.type = "text/javascript"
+    script.src  = url
 
-    if (script.readyState){  //IE
+    if ( script.readyState ) {  //IE
         script.onreadystatechange = function(){
-            if (script.readyState == "loaded" ||
-                    script.readyState == "complete"){
-                script.onreadystatechange = null;
-                callback();
+            if ( script.readyState == "loaded" || script.readyState == "complete" ) {
+                script.onreadystatechange = null
+                callback( script )
             }
-        };
+        }
     } else {  //Others
         script.onload = function(){
-            callback();
-        };
+            callback( script )
+        }
     }
 
-    script.src = url;
-    document.getElementsByTagName("head")[0].appendChild(script);
+    document.getElementsByTagName("head")[0].appendChild(script)
 }
 
-var pending = 0
-var total   = 0
-function cb() {
+
+var allstarted = 0
+var pending    = 0
+var total      = 0
+function cb( file ) {
+//    Log( 'Loaded ' + file )
     pending--
-    if ( !pending ) {
+    if ( allstarted && !pending ) {
 	Log( total + " file(s) loaded." )
 	SetupInputs()
 	plotAccordingToChoices()
     }
 }
 
-var path = "/stuff/strombilanz/"
-if ( test ) {
-    path = "../"
+
+// determine full URL of stromscripts.js so that the directory
+// part can be used as a prefix to fetch the data files
+var prefix
+var scripts = document.getElementsByTagName( "script" )
+for ( var i = 0; i < scripts.length; i++ ) {
+  var s = scripts.item(i)
+  if ( s.src && s.src.match( /stromscripts\.js$/ ) )
+      prefix = s.src.match( /^.*\// )
 }
+Log( "Determined prefix: " + prefix )
+
+// load data files
 for ( var y = 2008; y <= 2012; y++ ) {
     pending += 3
     total += 3
-    loadScript( path+"eu"+y+".js", cb )
-    loadScript( path+"flow"+y+".js", cb )
-    loadScript( path+"sched"+y+".js", cb )
+    loadScript( prefix+'eu'+y+'.js', cb )
+    loadScript( prefix+'flow'+y+'.js', cb )
+    loadScript( prefix+'sched'+y+'.js', cb )
 }
+allstarted = 1
