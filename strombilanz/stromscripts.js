@@ -19,19 +19,22 @@ var total      = 0
 // url:      filename to be loaded
 // callback: function to be called on load
 // cbparam:  extra parameter to callback function
+//
+// In webkit-based browsers, callback for .css files doesn't work.  Therefore
+// .css files are not included in the "pending" count.
 function loadFile( url, callback, cbparam ) {
-    pending++
-    total++
 
     if ( url.match( /.js$/ ) )
         var type = 'js'
     else
         var type = 'css'
 
+    total++
     if ( type == 'js' ) {
         var file = document.createElement( 'script' )
         file.type = 'text/javascript'
         file.src  = url
+        pending++
     } else {
         var file = document.createElement( 'link' )
         file.rel   = 'stylesheet'
@@ -41,13 +44,15 @@ function loadFile( url, callback, cbparam ) {
     }
 
     if ( file.readyState ) {  //IE
+//        Log( 'loadFile: IE' )
         file.onreadystatechange = function(){
             if ( file.readyState == "loaded" || file.readyState == "complete" ) {
                 file.onreadystatechange = null
                 callback( file, cbparam )
             }
         }
-    } else {  //Others
+    } else {
+//        Log( 'loadFile: default' )
         file.onload = function(){
             callback( file, cbparam )
         }
@@ -73,24 +78,18 @@ Log( "Determined prefix: " + prefix )
 // callback function for sequential file loading
 function cbseq( file, arr ) {
     Log( 'Seq received: ' + file.src )
-    pending--
+
+    if ( file.src.match( /.js$/ ) )
+        pending--
+
     if ( file.src.match( /jquery.min.js$/ ) && jQuery.browser.msie == true && jQuery.browser.version < 9 ) { 
         Log( 'IE<9 detected.  Applying counter-measures.' )
         arr.unshift( prefix + 'flot/excanvas.min.js' )
     }
+
     if ( arr.length > 0 )
         loadFile( arr.shift(), cbseq, arr )
-    if ( allstarted && !pending ) {
-	Log( total + " file(s) loaded." )
-	Setup()
-	plotAccordingToChoices()
-    }
-}
 
-
-function cb( file ) {
-    Log( 'Received: ' + file.src )
-    pending--
     if ( allstarted && !pending ) {
 	Log( total + " file(s) loaded." )
 	Setup()
@@ -100,7 +99,7 @@ function cb( file ) {
 
 
 // load css
-loadFile( prefix+'stromstyles.css', cb )
+loadFile( prefix+'stromstyles.css', cbseq, new Array() )
 
 
 // load flot js sequentially (to avoid parsing errors)
@@ -114,9 +113,9 @@ loadFile( prefix + 'flot/jquery.min.js', cbseq, seq )
 
 // load data files
 for ( var y = 2008; y <= 2012; y++ ) {
-    loadFile( prefix+'eu'+y+'.js', cb )
-    loadFile( prefix+'flow'+y+'.js', cb )
-    loadFile( prefix+'sched'+y+'.js', cb )
+    loadFile( prefix+'eu'+y+'.js', cbseq, new Array() )
+    loadFile( prefix+'flow'+y+'.js', cbseq, new Array() )
+    loadFile( prefix+'sched'+y+'.js', cbseq, new Array() )
 }
 allstarted = 1
 
