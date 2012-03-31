@@ -77,12 +77,15 @@ Log( "Determined prefix: " + prefix )
 
 // callback function for sequential file loading
 function cbseq( file, arr ) {
-    Log( 'Seq received: ' + file.src )
+    if ( 'src' in file )
+        Log( 'Received: ' + file.src )
+    else
+        Log( 'Received: ' + file.href )
 
-    if ( file.src.match( /.js$/ ) )
+    if ( 'src' in file && file.src.match( /.js$/ ) )
         pending--
 
-    if ( file.src.match( /jquery.min.js$/ ) && jQuery.browser.msie == true && jQuery.browser.version < 9 ) { 
+    if ( 'src' in file && file.src.match( /jquery.min.js$/ ) && jQuery.browser.msie == true && jQuery.browser.version < 9 ) { 
         Log( 'IE<9 detected.  Applying counter-measures.' )
         arr.unshift( prefix + 'flot/excanvas.min.js' )
     }
@@ -135,6 +138,8 @@ var sdiv
 var ydiv
 function Setup() {
 
+    Log( "Starting setup." )
+
     //
     // write some HTML
     //
@@ -158,7 +163,6 @@ function Setup() {
 	    '</div>' +
 	    '<div style="clear:both"></div>'
     )
-    Log( "Appended controls to choiceContainer." )
 
 
     cdiv = $("#countrydiv")
@@ -278,6 +282,10 @@ function InitPlot( data, type ) {
     var marking = [
         { color: '#000', lineWidth: 1, xaxis: { from: moradate, to: moradate } }
     ]
+
+    Log( 'InitPlot.' )
+    Log( typeof $ )
+    Log( $ )
 
     // Plot once to obtain zoom range.
     plot = $.plot( plotContainer, data, {} )
