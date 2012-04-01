@@ -1,7 +1,6 @@
 /*
- * tested and working:  Firefox (Linux, Android 2.3), Chrome (Linux), Android 2.3 Browser
+ * tested and working:  Firefox (Linux, Android 2.3), Chrome (Linux), Android 2.3 Browser, IE 8
  * to be tested:  Safari (MacOS, iOS), IE 9
- * to be fixed:  IE 8
  */
 
 var onlytotal = 1  // only show total sums since display of individual countries is still experimental
@@ -73,12 +72,27 @@ $LAB.queueScript( prefix + 'flot/jquery.min.js' )
     .queueScript( prefix + 'flot/jquery.flot.resize.min.js' )
     .queueScript( prefix + 'flot/jquery.flot.navigate.min.js' )
     .queueWait( function(){
-        Setup()
-        plotAccordingToChoices()
+        Step2()
     })
 
 $LAB.runQueue()
 
+
+// load excanvas for IE < 9
+function Step2() {
+    lab = $LAB.sandbox()
+
+    if ( jQuery.browser.msie == true && jQuery.browser.version < 9 ) {
+        Log( 'IE<9 detected.  Loading excanvas.' )
+        lab.queueScript( prefix + 'flot/excanvas.min.js' )
+    }
+
+    lab.runQueue()
+        .wait( function(){
+            Setup()
+            plotAccordingToChoices()
+        })
+}
 
 
 // Date of "Moratorium"
@@ -126,6 +140,8 @@ function Setup() {
     sdiv = $("#sourcediv")
     ydiv = $("#yeardiv")
 
+    Log( 'Preparing ' + alldata.length + ' data set(s):' )
+
     var countries = {}
     var sources   = new Array()
     var years     = new Array()
@@ -134,14 +150,15 @@ function Setup() {
 	var y  = alldata[i].year
 	var s  = alldata[i].source
 
-	// Log( "SetupInputs(): " + c + " (" + y + "): " + s + ", agg: " + alldata[i].aggregation )
+//	Log( "  data set: " + c + " (" + y + "): " + s + ", agg: " + alldata[i].aggregation )
 
 	countries[c] = c
         
-        if ( sources.indexOf(s) < 0 )
+        // don't use sources.indexOf() because it breaks IE 8 (yuck!)
+        if ( $.inArray( s, sources ) < 0 )
             sources.push(s)
 
-        if ( years.indexOf(y) < 0 )
+        if ( $.inArray( y, years ) < 0 )
             years.push(y)
     }
     sources.sort()
@@ -169,6 +186,8 @@ function Setup() {
 			 '<label for="' + country + '">' + country + '</label><br />' )
 	}
     }
+    
+    Log( 'Found ' + sources.length + ' different data source(s):' )
     for ( var i=0; i<sources.length; i++ ) {
         var source  = sources[i]
 	var label   = source
@@ -181,10 +200,11 @@ function Setup() {
 	}
 	sdiv.append( '<input type="checkbox" id="' + source + '"' + checked + ' name="' + source + '" /> '+
 		     '<label for="' + source + '">' + label + '</label><br />' )
-	Log( 'Adding source: ' + label )
+	Log( '  adding source: ' + label )
 
     }
 
+    Log( 'Found data from ' + years.length + ' year(s):' )
     for ( var i=0; i<years.length; i++ ) {
         var year = years[i]
 	var checked = ""
@@ -193,7 +213,7 @@ function Setup() {
 	}
 	ydiv.append( '<input type="checkbox" id="' + year + '"' + checked + ' name="' + year + '" /> '+
 		     '<label for="' + year + '">' + year + '</label><br />' )
-	Log( 'Adding year: ' + year )
+	Log( '  adding year: ' + year )
     }
 
     choiceContainer.find("input").click( plotAccordingToChoices )
@@ -240,11 +260,11 @@ function InitPlot( data, type ) {
         { color: '#000', lineWidth: 1, xaxis: { from: moradate, to: moradate } }
     ]
 
-    Log( 'InitPlot.' )
+    Log( 'Starting InitPlot.' )
 
     // Plot once to obtain zoom range.
     plot = $.plot( plotContainer, data, {} )
-    
+
     var yaxis  = plot.getAxes().yaxis
     var deltay = yaxis.max - yaxis.min
     var ymin   = yaxis.min
@@ -289,6 +309,8 @@ function InitPlot( data, type ) {
     plotContainer.bind('plotzoom', function (event, plot) {
         UpdateLabel()
     })
+
+    Log( 'Done InitPlot.' )
 }
 
 
