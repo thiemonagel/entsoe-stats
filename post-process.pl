@@ -255,6 +255,8 @@ for ( my $year = $year_first; $year <= $year_last; $year++ ) {
             last if $tag !~ /^total/;
         }
     }
+    print $file     "Log( 'Self-log: loaded $output_stem${year}.js' )\n";
+    print $filefull "Log( 'Self-log: loaded $output_stem${year}full.js' )\n";
     close( $file     );
     close( $filefull );
 }
