@@ -58,7 +58,12 @@ vs. Final Schedules.
 Data Quality
 ============
 
-release date: "MessageDateTime"
+"MessageDateTime" XML tag seems to contain the date on which the data was
+released by entsoe.net.
+
+MessageDateTime 2012-04-12T08:30:45 data differs from MessageDateTime
+2012-03-19T09:42:08 data only insofar as that values from January to April
+have been removed.
 
 problems with physical flow 2010-01-01 to 2010-04-11
 
