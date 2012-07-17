@@ -3,7 +3,11 @@
 # Script to extract data from XML file, build day-sums and convert to simple
 # output format.
 #
-# Requires Debian package libxml-simple-perl
+# For rapid development, a DOM-type XML parser was used.  Possibly, speed and
+# memory improvements might be achieved by replacing it with a stream-type XML
+# parser.
+#
+# Requires XML::Simple Perl module.  (Debian package: libxml-simple-perl)
 #
 # semantics:
 # "in":  from = source
@@ -12,14 +16,14 @@
 use diagnostics;
 #use strict;
 
+# load modules
+use XML::Simple;
+use Data::Dumper;
+
 my $infile = shift;
 my $outfile = shift;
 
 open( my $fh, ">", $outfile ) or die $!;
-
-# use module
-use XML::Simple;
-use Data::Dumper;
 
 # create object
 my $xml = new XML::Simple;
@@ -61,7 +65,8 @@ foreach my $d ( @{ $day } ) {
     $date = $1;
 #    print "$out --> $in\n";
 
-    die "Bad data: expecting only transfers from/to Germany." if $in ne 'DE' && $out ne 'DE';
+#    die "Bad data: expecting only transfers from/to Germany." if $in ne 'DE' && $out ne 'DE';
+    next if $in ne 'DE' && $out ne 'DE';
     
     foreach my $hour ( @{ $intervals } ) {
         my $h = $hour->{Pos}->{v};
@@ -183,7 +188,8 @@ sub normalize_name( $ ) {
     } elsif ( $name =~ /^10YSE/ || $name eq '10Y1001A1001A47J' ) {
 	$name = 'SE';
     } else {
-	die "Unknown area: $name";
+        $name = '??';
+#	die "Unknown area: $name";
     }
     return $name;
 }
