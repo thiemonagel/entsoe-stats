@@ -1,10 +1,11 @@
 #
 # Produce plots for years 2008-2012.
 #
-
+# Note:  bzip2 compression of ETSOVista XML files is significantly better than
+# that of xz.
 
 SHELL=/bin/bash
-data=../data2
+datadir=../data2
 date=$(shell date +%Y-%m-%d)
 flow_xml=$(wildcard ETSOVista-PhysicalFlow-DE-*.xml)
 sched_xml=$(wildcard ETSOVista-FinalSchedules-DE-*.xml)
@@ -54,26 +55,34 @@ sched2008.js: ETSOVista-FinalSchedules-DE-2007-1.out ETSOVista-FinalSchedules-DE
 
 
 
-Statistics_2004.csv: Statistics.csv | $(data)
-	@if [ -f $(data)/$< ] && diff -q $< $(data)/$< > /dev/zero; then \
+Statistics_2004.csv: Statistics.csv | $(datadir)
+	@if [ -f $(datadir)/$< ] && diff -q $< $(datadir)/$< > /dev/zero; then \
 		echo "$< unchanged"; \
 	else \
 		echo "$< changed"; \
-		cp -af $< $(data); \
-		cp -af $< $(data)/$<-$(date); \
-		bzip2 -vf $(data)/$<-$(date); \
+		cp -af $< $(datadir); \
+		cp -af $< $(datadir)/$<-$(date); \
+		bzip2 -vf $(datadir)/$<-$(date); \
 		cp -af $< $@; \
 	fi
 
 
-$(xml2): %.xml2: %.xml | $(data)
-	@if [ -f $@ ] && [ -f $(data)/$< ] && diff -q $< $@ && diff -q $< $(data)/$< > /dev/zero; then \
-		echo "$< unchanged"; \
+$(xml2): %.xml2: %.xml | $(datadir)
+# if %.xml2 is not identical with %.xml --> update
+# special case:  don't updated 2010 flow because recent entsoe.net data is flawed
+	@if [ -f $@ ] && diff -q $< $@ > /dev/zero || [ "$<" == "ETSOVista-PhysicalFlow-DE-2010-1.xml" ] ; then \
+		echo "$@ unchanged, not updating $@"; \
 	else \
-		echo "$< changed"; \
-		cp -af $< $(data); \
-		cp -af $< $(data)/$<-$(date); \
-		bzip2 -vf $(data)/$<-$(date); \
+		echo "$< changed, updating $@"; \
+		cp -af $< $@; \
+	fi
+	@if [ -f $(datadir)/$< ] && diff -q $< $(datadir)/$< > /dev/zero; then \
+		echo "$(datadir)/$< unchanged"; \
+	else \
+		echo "$(datadir)/$< changed"; \
+		cp -af $< $(datadir); \
+		cp -af $< $(datadir)/$<-$(date); \
+		bzip2 -vf $(datadir)/$<-$(date); \
 		cp -af $< $@; \
 	fi
 
@@ -97,8 +106,8 @@ Statistics_2007.csv: Statistics.csv
 		cp -f $@ $@.bak; \
 	fi
 
-$(data):
-	mkdir -p $(data)
+$(datadir):
+	mkdir -p $(datadir)
 
 
 test:
