@@ -68,6 +68,7 @@ foreach my $d ( @{ $day } ) {
 #    die "Bad data: expecting only transfers from/to Germany." if $in ne 'DE' && $out ne 'DE';
     next if $in ne 'DE' && $out ne 'DE';
     
+    
     foreach my $hour ( @{ $intervals } ) {
         my $h = $hour->{Pos}->{v};
         my $v = 0.;
@@ -188,8 +189,8 @@ sub normalize_name( $ ) {
     } elsif ( $name =~ /^10YSE/ || $name eq '10Y1001A1001A47J' ) {
 	$name = 'SE';
     } else {
-        $name = '??';
-#	die "Unknown area: $name";
+	$name = '??';
+#	die "Unknown area: '$name'";
     }
     return $name;
 }
