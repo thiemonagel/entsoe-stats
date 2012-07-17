@@ -54,8 +54,7 @@ sched2008.js: ETSOVista-FinalSchedules-DE-2007-1.out ETSOVista-FinalSchedules-DE
 
 
 
-Statistics_2004.csv: Statistics.csv
-	@mkdir -p $(data)
+Statistics_2004.csv: Statistics.csv | $(data)
 	@if [ -f $(data)/$< ] && diff -q $< $(data)/$< > /dev/zero; then \
 		echo "$< unchanged"; \
 	else \
@@ -67,8 +66,7 @@ Statistics_2004.csv: Statistics.csv
 	fi
 
 
-$(xml2): %.xml2: %.xml
-	@mkdir -p $(data)
+$(xml2): %.xml2: %.xml | $(data)
 	@if [ -f $@ ] && [ -f $(data)/$< ] && diff -q $< $@ && diff -q $< $(data)/$< > /dev/zero; then \
 		echo "$< unchanged"; \
 	else \
@@ -85,6 +83,7 @@ $(xml2): %.xml2: %.xml
 %.out: %.xml2 extract.pl
 	./extract.pl $< $@
 
+
 Statistics.csv: Statistics.xls
 	localc --headless -env:UserInstallation=file://$(HOME)/.libreoffice-cline -convert-to csv Statistics.xls
 
@@ -97,6 +96,10 @@ Statistics_2007.csv: Statistics.csv
 		mv $< $@; \
 		cp -f $@ $@.bak; \
 	fi
+
+$(data):
+	mkdir -p $(data)
+
 
 test:
 	@echo home: $(HOME)
