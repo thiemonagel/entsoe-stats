@@ -57,7 +57,7 @@ Log( "Determined prefix: " + prefix )
 loadCSS( prefix+'stromstyles.css' )
 
 // load data files
-for ( var y = 2008; y <= 2012; y++ ) {
+for ( var y = 2008; y <= 2013; y++ ) {
 //for ( var y = 2012; y <= 2012; y++ ) {
     $LAB.queueScript( prefix + 'eu'    + y + '.js' )
         .queueScript( prefix + 'flow'  + y + '.js' )

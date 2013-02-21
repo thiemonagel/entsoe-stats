@@ -22,7 +22,7 @@ my $dispunit    = 1e9;      # GW sustained (unit of output data)
 my $dispyear    = 2011;     # no leap year
 
 my $year_first  = 2005;
-my $year_last   = 2012;
+my $year_last   = 2013;
 my $output_year = 1;
 my $output_csv  = 0;
 my $output_stem = '';
@@ -49,7 +49,7 @@ my %daily;          # timelines of day-precision data
 #
 my $csv_ok = 0;
 my $csv_debug = '';    # eg. 'LU'
-my $csv_magic = 'Country_Exp,month,year,AT,BA,BE,BG,CH,CS,CZ,DE,DK,DK,EE,ES,FI,FR,GB,GR,HR,HU,IE,IT,LT,LU,LV,ME,MK,NI,NL,NO,PL,PT,RO,RS,SE,SI,SK,UA,AL,BY,MA,MD,RU,TR,UA,DK';
+my $csv_magic = 'Country_Exp,month,year,AT,BA,BE,BG,CH,CZ,DE,DK,DK,EE,ES,FI,FR,GB,GR,HR,HU,IE,IT,LT,LU,LV,ME,MK,NI,NL,NO,PL,PT,RO,RS,SE,SI,SK,UA,AL,BY,MA,MD,RU,TR,UA,DK';
 my @csv_tokens = split( /,/, $csv_magic );
 my %csv_data;
 my %csv_data_utime;
