@@ -75,7 +75,7 @@ Statistics_2004.csv: Statistics.csv | $(datadir)
 
 $(xml2): %.xml2: %.xml | $(datadir)
 # if %.xml2 is not identical with %.xml --> update
-# special case:  don't updated 2010 flow because recent entsoe.net data is flawed
+# special case:  don't update 2010 flow because recent entsoe.net data is flawed
 	@if [ -f $@ ] && diff -q $< $@ > /dev/zero || [ "$<" == "ETSOVista-PhysicalFlow-DE-2010-1.xml" ] ; then \
 		echo "$@ unchanged, not updating $@"; \
 	else \
