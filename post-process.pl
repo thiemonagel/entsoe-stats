@@ -49,7 +49,8 @@ my %daily;          # timelines of day-precision data
 #
 my $csv_ok = 0;
 my $csv_debug = '';    # eg. 'LU'
-my $csv_magic = 'Country_Exp,month,year,AT,BA,BE,BG,CH,CS,CZ,DE,DK,DK,EE,ES,FI,FR,GB,GR,HR,HU,IE,IT,LT,LU,LV,ME,MK,NI,NL,NO,PL,PT,RO,RS,SE,SI,SK,UA,AL,BY,MA,MD,RU,TR,UA,DK';
+my $csv_magic = 'Country_Exp,month,year,AT,BA,BE,BG,CH,CS,CZ,DE,DK,DK_W,EE,ES,FI,FR,GB,GR,HR,HU,IE,IT,LT,LU,LV,ME,MK,NI,NL,NO,PL,PT,RO,RS,SE,SI,SK,AL,BY,MA,MD,RU,TR,UA,DK_E';
+
 
 my @csv_tokens = split( /,/, $csv_magic );
 my %csv_data;
