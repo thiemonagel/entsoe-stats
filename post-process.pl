@@ -57,6 +57,16 @@ my %csv_data;
 my %csv_data_utime;
 my %csv_neighbours;    # list of Germany's neighbours
 
+
+sub normalize_name( $ ) {
+    my $name = shift;
+    if ( $name =~ /^DK/ ) {
+	$name = 'DK';
+    }
+    return $name;
+}
+
+
 open CSV, "<$csv_file"
     or die "Could not open $csv_file!";
 
@@ -74,14 +84,14 @@ while (<CSV>) {
     next if ( !$csv_ok );
 
     for ( my $i = 3; $i < scalar @csv_tokens; $i++ ) {
-	my $from = $csv_tokens[$i];
+	my $from = normalize_name( $csv_tokens[$i] );
 	if ( /^$from,(\d+),(\d+)/ ) {
 	    my $month = $1 + 0; die "month $month out of range" if $month <= 0    || 13   <= $month;
 	    my $year  = $2 + 0; die "year $year out of range"   if $year  <= 2000 || 2013 <= $year;
 	    my @parts = split /,/;
 	    for ( my $j = 3; $j < scalar @csv_tokens; $j++ ) {
 		next if $j == $i;
-		my $to  = $csv_tokens[$j];
+		my $to  = normalize_name( $csv_tokens[$j] );
 		my $val = $parts[$j];
 		$val = '' if ! defined $val;
 		my $utime = timegm( 0, 0, 0, 16, $month-1, $year );   # ( $sec, $min, $hour, $mday, $mon, $year );
@@ -120,8 +130,8 @@ for ( my $year = 2006; $year < 2012; $year++ ) {
 #
 sub interpolate( $$$$ );
 sub extrapolate( $$$$ );
-my $lminimal = 0;
-my $hminimal = ~0;
+my $lminimal = 0;   # lowest date shared by all timelines
+my $hminimal = ~0;  # highest date shared by all timelines
 foreach my $country ( sort keys %csv_neighbours ) {
     (my $l1) = sort keys %{ $csv_data_utime{'DE'}{$country} };
     (my $l2) = sort keys %{ $csv_data_utime{$country}{'DE'} };
