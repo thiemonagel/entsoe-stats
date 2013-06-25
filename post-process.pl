@@ -93,7 +93,7 @@ while (<CSV>) {
 		next if $j == $i;
 		my $to  = normalize_name( $csv_tokens[$j] );
 		my $val = $parts[$j];
-		$val = '' if ! defined $val;
+		$val = '' if ! defined $val || $val eq 'n/a';
 		my $utime = timegm( 0, 0, 0, 16, $month-1, $year );   # ( $sec, $min, $hour, $mday, $mon, $year );
 		if ( $val ne '' ) {
 		    $val *= $baseunit / $dispunit;
