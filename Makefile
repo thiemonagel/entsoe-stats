@@ -7,8 +7,11 @@
 SHELL=/bin/bash
 datadir=../data2
 date=$(shell date +%Y-%m-%d)
+
+# This is broken when operating in a clean working directory:
 flow_xml=$(wildcard ETSOVista-PhysicalFlow-DE-*.xml)
 sched_xml=$(wildcard ETSOVista-FinalSchedules-DE-*.xml)
+
 flow_out=$(patsubst %.xml, %.out, $(flow_xml))
 sched_out=$(patsubst %.xml, %.out, $(sched_xml))
 xml2=$(patsubst %.xml, %.xml2, $(flow_xml) $(sched_xml))
@@ -75,7 +78,7 @@ Statistics_2004.csv: Statistics.csv | $(datadir)
 
 $(xml2): %.xml2: %.xml | $(datadir)
 # if %.xml2 is not identical with %.xml --> update
-# special case:  don't update 2010 flow because recent entsoe.net data is flawed
+# special case:  don't update 2010 flow because recent entsoe.net data is flawed (2012-03-24 version seems best)
 	@if [ -f $@ ] && diff -q $< $@ > /dev/zero || [ "$<" == "ETSOVista-PhysicalFlow-DE-2010-1.xml" ] ; then \
 		echo "$@ unchanged, not updating $@"; \
 	else \
