@@ -87,7 +87,7 @@ while (<CSV>) {
 	my $from = normalize_name( $csv_tokens[$i] );
 	if ( /^$from,(\d+),(\d+)/ ) {
 	    my $month = $1 + 0; die "month $month out of range" if $month <= 0    || 13   <= $month;
-	    my $year  = $2 + 0; die "year $year out of range"   if $year  <= 2000 || 2013 <= $year;
+	    my $year  = $2 + 0; die "year $year out of range"   if $year  <= 2000 || 2014 <= $year;
 	    my @parts = split /,/;
 	    for ( my $j = 3; $j < scalar @csv_tokens; $j++ ) {
 		next if $j == $i;
