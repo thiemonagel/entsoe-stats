@@ -116,7 +116,7 @@ function Setup() {
     //
     plotContainer       = $("#flotdiv")
     var choiceContainer = $("#choicesdiv")
-    
+
     choiceContainer.append(
         '' +
 	    '<div class="butgroup" id="yeardiv" style="width:15%">Jahr:<br /></div>' +
@@ -153,7 +153,7 @@ function Setup() {
 //	Log( "  data set: " + c + " (" + y + "): " + s + ", agg: " + alldata[i].aggregation )
 
 	countries[c] = c
-        
+
         // don't use sources.indexOf() because it breaks IE 8 (yuck!)
         if ( $.inArray( s, sources ) < 0 )
             sources.push(s)
@@ -186,7 +186,7 @@ function Setup() {
 			 '<label for="' + country + '">' + country + '</label><br />' )
 	}
     }
-    
+
     Log( 'Found ' + sources.length + ' different data source(s):' )
     for ( var i=0; i<sources.length; i++ ) {
         var source  = sources[i]
@@ -295,7 +295,7 @@ function InitPlot( data, type ) {
 
     plotContainer.append('<div id="moratorium" style="position:absolute;white-space:nowrap;color:#666;font-size:smaller">AKW-Moratorium seit 17.3.2011</div>')
 
-    // add zoom out button 
+    // add zoom out button
     $('<div class="button" style="position:absolute;cursor:pointer;right:10px;top:10px;font-size:smaller;background-color:#dddddd;padding:2px;opacity:.65">Ansicht zurücksetzen</div>').appendTo(plotContainer).click(function (e) {
         e.preventDefault()
         last_aggregation = "none"
@@ -305,7 +305,7 @@ function InitPlot( data, type ) {
     // Register callbacks for panning and zooming.
     plotContainer.bind('plotpan', function (event, plot) {
         UpdateLabel()
-    })    
+    })
     plotContainer.bind('plotzoom', function (event, plot) {
         UpdateLabel()
     })
@@ -318,7 +318,7 @@ function plotAccordingToChoices() {
     // Log( "plotAccordingToChoices() called." )
 
     var data = []
-    
+
     // find data aggregation setting
     var adiv = $("#aggregationdiv")
     var aggregation = last_aggregation

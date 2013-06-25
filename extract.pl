@@ -67,8 +67,8 @@ foreach my $d ( @{ $day } ) {
 
 #    die "Bad data: expecting only transfers from/to Germany." if $in ne 'DE' && $out ne 'DE';
     next if $in ne 'DE' && $out ne 'DE';
-    
-    
+
+
     foreach my $hour ( @{ $intervals } ) {
         my $h = $hour->{Pos}->{v};
         my $v = 0.;

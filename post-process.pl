@@ -174,14 +174,14 @@ if ( @ARGV ) {
     my $lastfile = '';
     while (<>) {
 	die "content unset" if !$content;
-	
+
 	if ( $lastfile ne $ARGV ) {
 	    print "$filecount data points.\n" if $lastfile;
 	    print "$ARGV: ";
 	    $filecount = 0;
 	    $lastfile = $ARGV;
 	}
-	
+
 	chomp;
 	if ( /^#/ ) {
 	    @legend = split;
@@ -192,25 +192,25 @@ if ( @ARGV ) {
 	my $year  = $1;
 	my $month = $2;
 	my $day   = $3;
-	
+
 	# ignore 29th Feb in leap years
 	next if ( $month == 2 && $day == 29 );
-	
+
 	my $utime = timegm( 0, 0, 12, $day, $month-1, $year );   # ( $sec, $min, $hour, $mday, $mon, $year );
-	
+
 	die( "legend missing" ) if scalar @legend == 0;
 	my @tokens = split;
-	
+
 	for ( my $i=1; $i < scalar @legend; $i++ ) {
 	    my $tag = $legend[$i];
 	    my $val = $tokens[$i];
-	    
+
 	    # skip missing values
 	    next if $val eq "N/A";
-	    
+
 	    # skip if value has already been read from an earlier file
 	    next if defined $daily{$tag}{$utime};
-	    
+
 	    $val *= $baseunit / $dispunit;
 	    $daily{$tag}{$utime} = $val;
 	    $filecount++;
@@ -331,7 +331,7 @@ sub avg_timeline_years2( $$% ) {
 	$year += 1900;
 	$outyears{$year} = 1;
     }
-    
+
     foreach my $utime ( sort keys %{ $tl } ) {
 	(my $sec, my $min, my $hour, my $mday, my $month, my $year, my $wday, my $yday, my $isdst) = gmtime( $utime );
 	$year += 1900;
@@ -509,7 +509,7 @@ sub interpolate( $$$$ ) {
 
     my $data_utime = \%{ $csv_data_utime{$from}{$to} };
     my @autime     = sort keys %{ $data_utime };
-    
+
     my $ige = BinSearch( $utime, \@autime );
     die "interpolate: out of range: $from $to ", strftime( $fmt_long, gmtime( $utime ) ) , " $integral" if $ige == -1;
 
@@ -532,14 +532,14 @@ sub extrapolate( $$$$ ) {
     my $data_utime = \%{ $csv_data_utime{$from}{$to} };
     my $data       = \%{ $csv_data{$from}{$to} };
     my @autime     = sort keys %{ $data_utime };
-    
+
     my $ige = BinSearch( $utime, \@autime );
     return interpolate( $from, $to, $utime, $integral ) if ( $ige != -1 );
 
     (my $sec, my $min, my $hour, my $day, my $month, my $year, my $wday, my $yday, my $isdst) = gmtime( $utime );
     $month++;
     $year += 1900;
-    
+
     # data point before $utime
     my $yearbefore  = $year;
     my $monthbefore = ( $month - ( $day < 16 ) );
@@ -565,7 +565,7 @@ sub extrapolate( $$$$ ) {
     }
     die( "insufficient data for extrapolation" ) if $nbef < 4;
     my $avgbef = $sumbef / $nbef;
-    
+
     my $naft = 0;
     my $sumaft = 0.;
     for my $y ( reverse sort keys %{ $data } ) {
@@ -576,7 +576,7 @@ sub extrapolate( $$$$ ) {
     }
     die( "insufficient data for extrapolation" ) if $naft < 4;
     my $avgaft = $sumaft / $naft;
-    
+
     my $ubefore = timegm( 0, 0, 0, 16, $monthbefore -1, $yearbefore );
     my $uafter  = timegm( 0, 0, 0, 16, $monthafter  -1, $yearafter  );
     my $d       = $uafter - $ubefore;
