@@ -1,3 +1,7 @@
+The following are verbatim quotes of the descriptions of the different data
+sets as given by ENTSO-E on entsoe.net:
+
+
 Cross-Border Schedules
 ======================
 
@@ -52,22 +56,3 @@ schedules based on country views. In certain countries there are profiles for
 a regional NTC view with values involving several borders. Considering this
 approach, the ETSOVista platform includes profiles to compare Physical Flows
 vs. Final Schedules.
-
-
-
-Data Quality
-============
-
-"MessageDateTime" XML tag seems to contain the date on which the data was
-released by entsoe.net.
-
-MessageDateTime 2012-04-12T08:30:45 data differs from MessageDateTime
-2012-03-19T09:42:08 data only insofar as that values from January to April
-have been removed.
-
-problems with physical flow 2010-01-01 to 2010-04-11
-
-2012-04-20 version seems bad
-2012-04-22 version seems ok
-2012-05-05 version seems bad
-2012-05-12 version seems bad

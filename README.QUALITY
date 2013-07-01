@@ -1,0 +1,12 @@
+Data Quality
+============
+
+Generally speaking, the data provided by ENTSO-E should be taken with a grain
+of salt.
+
+Sometimes historic data is revised so that the same data set may contain
+different values, depending on the download date.  It can happen, though, that
+data older than two years is removed during such a revision.
+
+The "MessageDateTime" XML tag seems to contain the date on which the data was
+released by entsoe.net.
