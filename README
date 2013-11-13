@@ -5,5 +5,4 @@ XML to text conversion.  To be called as
 
     ./extract.pl input.xml output.txt
 
-Requires XML::Simple Perl module (Debian package:
-libxml-simple-perl).
+Requires XML::Simple Perl module (Debian package: libxml-simple-perl).
