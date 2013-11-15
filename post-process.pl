@@ -19,7 +19,7 @@ use Time::Local;
 my $dbg         = 1;
 my $baseunit    = 1e9/24.;  # GWh/day (unit of input data)
 my $dispunit    = 1e9;      # GW sustained (unit of output data)
-my $dispyear    = 2011;     # no leap year
+my $dispyear    = 2011;     # arbitrary, no leap year
 
 my $year_first  = 2005;
 my $year_last   = 2013;
