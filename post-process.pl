@@ -113,12 +113,13 @@ while (<CSV>) {
 }
 close CSV;
 
-for ( my $year = 2006; $year < 2012; $year++ ) {
+# some debug output
+for ( my $year = $year_first; $year <= $year_last; $year++ ) {
     my $sum = 0.;
     for ( my $month = 1; $month <= 12; $month++ ) {
 	foreach my $country ( sort keys %csv_neighbours ) {
-	    $sum += $csv_data{'DE'}{$country}{$year}{$month};
-	    $sum -= $csv_data{$country}{'DE'}{$year}{$month};
+	    $sum += $csv_data{'DE'}{$country}{$year}{$month} if defined $csv_data{'DE'}{$country}{$year}{$month};
+	    $sum -= $csv_data{$country}{'DE'}{$year}{$month} if defined $csv_data{$country}{'DE'}{$year}{$month};
 	}
     }
     printf "CSV yearsum %i: %f (%f GWh)\n", $year, $sum, $sum * $dispunit/$baseunit;
