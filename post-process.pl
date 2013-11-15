@@ -49,10 +49,10 @@ my %daily;          # timelines of day-precision data
 #
 my $csv_ok = 0;
 my $csv_debug = '';    # eg. 'LU'
-my $csv_magic = 'Country_Exp,month,year,AT,BA,BE,BG,CH,CS,CZ,DE,DK,DK_W,EE,ES,FI,FR,GB,GR,HR,HU,IE,IT,LT,LU,LV,ME,MK,NI,NL,NO,PL,PT,RO,RS,SE,SI,SK,AL,BY,MA,MD,RU,TR,UA,DK_E';
+my $csv_magic = 'Country_Exp,month,year,[A-Z_,]+,DE,[A-Z_,]+';
 
 
-my @csv_tokens = split( /,/, $csv_magic );
+my @csv_tokens;
 my %csv_data;
 my %csv_data_utime;
 my %csv_neighbours;    # list of Germany's neighbours
@@ -72,13 +72,10 @@ open CSV, "<$csv_file"
 
 while (<CSV>) {
     chomp;
-    if ( /^Country_Exp/ ) {
-        if ( /^$csv_magic/ ) {
-#            print "CSV format ok!\n";
-	    $csv_ok = 1;
-        } else {
-            die "Bad CSV format!";
-        }
+    if ( /^$csv_magic/ ) {
+	die "Duplicate magic!" if $csv_ok;
+	@csv_tokens = split( /,/ );
+	$csv_ok = 1;
         next;
     }
     next if ( !$csv_ok );
@@ -112,6 +109,7 @@ while (<CSV>) {
     }
 }
 close CSV;
+die "Bad CSV format!" if ! $csv_ok;
 
 # some debug output
 for ( my $year = $year_first; $year <= $year_last; $year++ ) {
