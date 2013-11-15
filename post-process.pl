@@ -58,11 +58,10 @@ my %csv_data_utime;
 my %csv_neighbours;    # list of Germany's neighbours
 
 
+# Remove underscore suffix, eg. DK_W --> DK
 sub normalize_name( $ ) {
     my $name = shift;
-    if ( $name =~ /^DK/ ) {
-	$name = 'DK';
-    }
+    ($name) = $name =~ /^([A-Z]+)/;
     return $name;
 }
 
